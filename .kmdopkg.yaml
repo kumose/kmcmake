@@ -1,0 +1,68 @@
+# This is an example .kmdopkg.yml file with some sensible defaults.
+# Make sure to check the documentation at https://kumose.cc
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://kumose.cc/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+
+archives:
+  - name_template: >-
+      {{- .ProjectName }}-
+      {{- .Version }}-any-any-
+    formats: [tar.gz]
+    files:
+      - src: "template/**/*"
+      - src: "README.md"
+      - src: "LICENSE"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  format: "{{ .SHA }}: {{ .Message }}{{ with .AuthorUsername }} (@{{ . }}){{ end }}"
+  filters:
+    exclude:
+      - "^test:"
+      - "^docs:"
+      - "^ci:"
+      - "merge"
+
+# GitHub Release configuration (Linux exclusive)
+release:
+  github:
+    owner: kumose
+    name: kmcmake
+  draft: false
+  prerelease: false
+  make_latest: true
+  name_template: "v{{ .Version }} (Linux Exclusive)"
+  header: |
+    ## Project Template v{{ .Version }} Released 🚀
+    - Platform: Linux only
+    - Format: tar.gz (Linux native support)
+    - Architectures: x86_64/aarch64 and others (auto-adapted)
+    - Usage: Extract and replace 'changeme' placeholder in template directory
+  footer: |
+    **Full Changelog**: https://github.com/{{ .Owner }}/{{ .Repo }}/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    Released by [kmdo pkg](https://github.com/kumose/kmdo).
