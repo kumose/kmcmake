@@ -22,7 +22,9 @@ archives:
   - name_template: "{{ .ProjectName }}-{{ .Version }}-any-any"
     formats: [tar.gz]
     files:
-      - src: "template/**/*"
+      - src: "template"
+        dst: template
+      - src: "template/*"
       - src: "README.md"
       - src: "LICENSE"
 
