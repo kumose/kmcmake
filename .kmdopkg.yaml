@@ -7,47 +7,10 @@
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
 version: 2
-
-# 彻底禁用 Go 相关环境变量
-env: []
-
-# 禁用所有前置钩子（避免触发 Go 相关操作）
-before:
-  hooks: []
-
-# 关键：彻底禁用构建流程（解决 "no main function" 报错）
-builds:
-  - skip: true  # 明确跳过该构建组
-    goos: []    # 清空所有目标系统，避免默认编译
-    goarch: []  # 清空所有目标架构
-    env: []     # 清空构建环境变量
-
-# 禁用 Go 模块相关配置（彻底切断 Go 关联）
-gomod:
-  enabled: false  # 明确禁用 Go 模块
-
-# 其他无关配置继续禁用
-report_sizes: false
-universal_binaries: []
-notarize: {}
-dockers_v2: []
-homebrew_casks: []
-nix: []
-winget: []
-aurs: []
-scoops: []
-nfpms: []
-snapcrafts: []
-sboms: []
-signs: []
-docker_signs: []
-milestones: []
-announce: []
+builds: []
 
 archives:
-  - name_template: >-
-      {{- .ProjectName }}-
-      {{- .Version }}-any-any-
+  - name_template: "{{ .ProjectName }}-{{ .Version }}-any-any"
     formats: [tar.gz]
     files:
       - src: "template/**/*"
@@ -68,7 +31,6 @@ changelog:
       - "^ci:"
       - "merge"
 
-# GitHub Release configuration (Linux exclusive)
 release:
   github:
     owner: kumose
@@ -76,14 +38,10 @@ release:
   draft: false
   prerelease: false
   make_latest: true
-  name_template: "v{{ .Version }} (Linux Exclusive)"
+  name_template: "v{{ .Version }}"
   header: |
     ## Project Template v{{ .Version }} Released 🚀
-    - Platform: Linux only
-    - Format: tar.gz (Linux native support)
-    - Architectures: x86_64/aarch64 and others (auto-adapted)
-    - Usage: Extract and replace 'changeme' placeholder in template directory
+    - Type: Pure file release
+    - Contents: template/, README.md, LICENSE
   footer: |
-    **Full Changelog**: https://github.com/{{ .Owner }}/{{ .Repo }}/compare/{{ .PreviousTag }}...{{ .Tag }}
-
-    Released by [kmdo pkg](https://github.com/kumose/kmdo).
+    Released by kmdo pkg.
