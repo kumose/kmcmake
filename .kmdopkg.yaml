@@ -9,7 +9,7 @@
 version: 2
 
 builds:
-  - main: main
+  - main: main.go
     skip: false
     env:
       - CGO_ENABLED=0
