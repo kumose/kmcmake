@@ -9,14 +9,8 @@
 version: 2
 
 builds:
-  - main: main.go
-    skip: false
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
+  - builder: noop
+  
 archives:
   - id: template
   - name_template: "{{ .ProjectName }}-{{ .Version }}-any-any"
