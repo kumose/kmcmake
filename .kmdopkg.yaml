@@ -7,7 +7,24 @@
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
 version: 2
-builds: []
+
+builds:
+  - main: ./cmd/chglog
+    skip: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }} -X main.builtBy=kumose
 
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Version }}-any-any"
