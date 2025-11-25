@@ -9,23 +9,14 @@
 version: 2
 
 builds:
-  - main: ./cmd/chglog
-    skip: true
+  - main: main
+    skip: false
     env:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
-      - windows
     goarch:
       - amd64
-      - arm64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }} -X main.builtBy=kumose
-
 archives:
   - id: template
   - name_template: "{{ .ProjectName }}-{{ .Version }}-any-any"
