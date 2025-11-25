@@ -8,6 +8,8 @@
 
 version: 2
 
+builds:
+  skip: true
 
 archives:
   - name_template: >-
