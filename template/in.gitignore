@@ -16,6 +16,10 @@
 *.dylib
 *.dll
 
+# Fortran module files
+*.mod
+*.smod
+
 # Compiled Static libraries
 *.lai
 *.la
@@ -27,6 +31,9 @@
 *.out
 *.app
 
+#go
+go.mod
+go.sum
 
 build
 cmake-build-debug
@@ -38,10 +45,7 @@ bazel-*
 docs/xml
 .vscode
 @CHANGEME@/version.h
-@CHANGEME@/version.h
+tests/config.h
 Testing
 __pychache__
 _skbuild
-.vscode
-# Added by kmdo pkg init:
-dist/
