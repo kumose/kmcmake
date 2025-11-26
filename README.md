@@ -4,6 +4,6 @@ cmake c/c++ build system
 
 
 ```bash
-cmake -S . -B buiid -DCHANGEME=myproject
+cmake -S ./template -B buid -DCHANGEME=myproject
 cmake --install build --project you/path
 ```

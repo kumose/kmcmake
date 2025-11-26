@@ -50,3 +50,5 @@ Testing
 __pychache__
 _skbuild
 .vscode
+# Added by kmdo pkg init:
+dist/
