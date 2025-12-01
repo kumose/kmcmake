@@ -17,9 +17,6 @@ archives:
     files:
       - src: "template"
         dst: template
-      - src: "template/*"
-      - src: "README.md"
-      - src: "LICENSE"
 
 checksum:
   name_template: "checksums.txt"
