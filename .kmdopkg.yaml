@@ -12,7 +12,6 @@ builds:
   - builder: noop
   
 archives:
-  - id: template
   - name_template: "{{ .ProjectName }}-{{ .Version }}-any-any"
     formats: [tar.gz]
     files:
