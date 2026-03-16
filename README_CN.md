@@ -2,6 +2,9 @@
 
 [English](README.md)
 
+
+[more docs](https://pub.kumose.cc/kmcmake)
+
 一款面向 kumo 生态的标准化 C/C++ 构建系统，基于 CMake 打造，提供开箱即用的构建模板与工具链集成能力，统一 kumo 体系内各项目的构建流程。
 
 ## 核心能力
@@ -27,12 +30,79 @@ kmdo kmpkg gencmake you-project
 
 ## 目录结构（模板核心）
 ```
-kmcmake/
-├── template/          # CMake 模板目录
-│   ├── CMakeLists.txt.in  # 项目构建入口模板
-│   └── config.cmake.in    # 项目配置模板（如版本、编译选项等）
-└── README.md          # 本说明文档
+tree myy/
+myy/
+├── benchmark
+│   ├── CMakeLists.txt
+│   └── config.h.in
+├── build-pypi-linux.sh
+├── cmake
+│   ├── deb
+│   │   ├── postinst.in
+│   │   ├── postrm
+│   │   ├── preinst
+│   │   └── prerm
+│   ├── myproject_config.cmake.in
+│   ├── myproject_cpack_config.cmake
+│   ├── myproject_cxx_config.cmake
+│   ├── myproject_deps.cmake
+│   ├── myproject_test.cmake
+│   └── rpm
+│       ├── postinst.in
+│       ├── postrm
+│       ├── preinst
+│       └── prerm
+├── CMakeLists.txt
+├── CMakePresets.json
+├── examples
+│   ├── CMakeLists.txt
+│   └── foo_ex.cc
+├── kmcmake
+│   ├── copts
+│   │   ├── copts.py
+│   │   └── generate_copts.py
+│   ├── kmcmake_module.cmake
+│   ├── kmcmake_option.cmake
+│   ├── package
+│   │   ├── CPack.STGZ_Header.sh.in
+│   │   ├── pkg_dump_template.pc.in
+│   │   └── README.md
+│   ├── README.md
+│   └── tools
+│       ├── default_setting.cmake
+│       ├── git_commit.cmake
+│       ├── kmcmake_cc_benchmark.cmake
+│       ├── kmcmake_cc_binary.cmake
+│       ├── kmcmake_cc_interface.cmake
+│       ├── kmcmake_cc_library.cmake
+│       ├── kmcmake_cc_object.cmake
+│       ├── kmcmake_cc_proto.cmake
+│       ├── kmcmake_cc_test.cmake
+│       └── simd_detect.cmake
+├── LICENSE
+├── myproject
+│   ├── api.h
+│   ├── CMakeLists.txt
+│   ├── foo.cc
+│   ├── foo.h
+│   ├── main.cc
+│   └── version.h.in
+├── pyproject.toml
+├── README_CN.md
+├── README.md
+├── release-pypi-linux.sh
+├── requirements.txt
+├── setup.py
+└── tests
+    ├── args_test.cc
+    ├── CMakeLists.txt
+    ├── config.h.in
+    ├── foo_doctest.cc
+    ├── foo_test.cc
+    ├── pass_test.cc
+    └── raw_test.cc
 ```
+
 
 ## 关键参数说明
 | 参数       | 说明                                  | 示例值        |
