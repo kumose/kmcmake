@@ -30,6 +30,7 @@ function(kmcmake_cc_binary)
             CUOPTS
             LINKS
             INCLUDES
+            LINKOPTS
     )
 
     cmake_parse_arguments(
@@ -76,6 +77,9 @@ function(kmcmake_cc_binary)
             PUBLIC
             ${KMCMAKE_CC_BINARY_DEFINES}
     )
+
+    target_link_options(${exec_case} PRIVATE ${KMCMAKE_CC_BINARY_LINKOPTS})
+
 
     target_include_directories(${exec_case} ${${KMCMAKE_CC_LIB_NAME}_INCLUDE_SYSTEM}
             PRIVATE
