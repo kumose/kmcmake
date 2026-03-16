@@ -16,7 +16,7 @@
 # generate by kmcmake package manager tools for kmdo
 # https://github.com/kumose/kmcmake
 ####################################################################################
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.31)
 
 project(kmcmake CXX)
 
@@ -25,7 +25,7 @@ if(NOT CHANGEME)
 endif ()
 
 string(TIMESTAMP CURRENT_DATE "%Y-%m-%d")
-set(TM_KMCMAKE_VERSION 0.6.0)
+set(TM_KMCMAKE_VERSION 0.7.0)
 
 configure_file(${PROJECT_SOURCE_DIR}/CMakeLists.txt.in ${PROJECT_BINARY_DIR}/CMakeLists.txt @ONLY)
 configure_file(${PROJECT_SOURCE_DIR}/README.md.in ${PROJECT_BINARY_DIR}/README.md @ONLY)
