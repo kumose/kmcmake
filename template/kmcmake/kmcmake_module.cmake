@@ -53,6 +53,7 @@ include(kmcmake_cc_object)
 include(kmcmake_cc_test)
 include(kmcmake_cc_binary)
 include(kmcmake_cc_benchmark)
+include(kmcmake_cc_proto_object)
 include(simd_detect)
 
 

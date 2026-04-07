@@ -1,0 +1,149 @@
+# 用 kmcmake 自定义 C++ 编译标志：预设 + 项目专属调整
+kmcmake 采用「预设 + 自定义」的设计简化 C++ 编译标志管理：为主流编译器（GCC/Clang/MSVC）和 CPU 架构预定义生产级标志，同时支持在专属文件中进行项目定制——无需分散的标志定义或原生 CMake 冗余代码。
+
+所有标志配置集中在 `cmake/myproject_cxx_config.cmake`（kmcmake 默认生成），确保跨平台一致性和可维护性。
+
+## 核心设计：常见场景的预定义标志
+kmcmake 内置**经实战验证的默认标志**，针对编译器、构建类型和使用场景优化——无需从零开始配置。这些预设聚焦于：
+- 代码质量（如 `-Wall`/`-Wextra` 开启严格警告）
+- 跨平台兼容性（如 `NOMINMAX` 避免 Windows 宏冲突）
+- 性能（如架构专属 SIMD 标志）
+- 稳定性（如放松测试代码警告以减少冗余输出）
+
+### 关键预定义标志组（位于 `myproject_cxx_config.cmake`）
+| 标志组                  | 用途                                                                 |
+|-------------------------|----------------------------------------------------------------------|
+| `KMCMAKE_GCC_FLAGS`     | GCC 编译器默认标志（如 `-Wall`、`-Wformat-security`、`-Wwrite-strings`） |
+| `KMCMAKE_LLVM_FLAGS`    | Clang/AppleClang 编译器默认标志（如 `-Wfloat-overflow-conversion`、`-Wunreachable-code`） |
+| `KMCMAKE_MSVC_FLAGS`    | MSVC 编译器默认标志（如 `/W3`、`/bigobj`、`/wd4267` 抑制常见警告）     |
+| `KMCMAKE_XXX_TEST_FLAGS`| 测试代码放松标志（如 `-Wno-unused-parameter` 减少测试专属冗余警告）    |
+| `KMCMAKE_ARCH_OPTION`   | 架构专属标志（如 x86_64 的 AVX2/AVX512、ARM 的 Neon 指令集）          |
+
+### 示例：预定义的 GCC 标志
+kmcmake 为 GCC 开箱即配置了严格且实用的默认标志：
+```cmake
+# 来自 kmcmake 生成的 myproject_cxx_config.cmake
+list(APPEND KMCMAKE_GCC_FLAGS
+        "-Wall"                  # 启用基础警告
+        "-Wextra"                # 启用扩展警告
+        "-Wno-cast-qual"         # 抑制非关键警告
+        "-Wformat-security"      # 防止格式化字符串漏洞
+        "-Woverlength-strings"   # 超长字符串警告
+        "-Wpointer-arith"        # 不安全指针操作警告
+        "-Wwrite-strings"        # 将字符串常量视为 const（更安全）
+        "-Wclass-memaccess"      # 无效类成员访问警告
+        "-DNOMINMAX"             # 禁用 Windows 风格 min/max 宏
+)
+```
+
+## 步骤 1：理解标志聚合逻辑
+kmcmake 自动将标志聚合到 `KMCMAKE_CXX_OPTIONS`（所有 kmcmake 宏如 `kmcmake_cc_library`/`binary` 通过 `CXXOPTS` 参数使用该最终标志列表）：
+```cmake
+# 来自 myproject_cxx_config.cmake（生成的逻辑）
+set(KMCMAKE_CXX_OPTIONS 
+    ${KMCMAKE_DEFAULT_COPTS}  # 编译器专属默认标志（如 GCC → KMCMAKE_GCC_FLAGS）
+    ${KMCMAKE_ARCH_OPTION}    # 架构/SIMD 标志（如 AVX2）
+    ${KMCMAKE_RANDOM_RANDEN_COPTS}  # 加密相关架构标志
+)
+```
+
+- `KMCMAKE_DEFAULT_COPTS` 会根据编译器自动选择（如 GCC 对应 `KMCMAKE_GCC_FLAGS`，Clang 对应 `KMCMAKE_LLVM_FLAGS`）。
+- 通过 `list(REMOVE_DUPLICATES KMCMAKE_CXX_OPTIONS)` 去重，避免冲突。
+- 构建时会通过 `kmcmake_print_list_label("CXX_OPTIONS:" KMCMAKE_CXX_OPTIONS)` 打印最终标志列表，方便验证。
+
+## 步骤 2：添加项目专属标志
+如需自定义标志，编辑 `cmake/myproject_cxx_config.cmake`——kmcmake 预留了专属区域（标记为 `#define your options here`）用于项目调整，无需修改 kmcmake 核心代码。
+
+### 示例：添加自定义警告与优化
+如需禁用冗余警告、启用 OpenMP 并行计算和链接时优化（LTO），在预留区域添加：
+```cmake title="cmake/myproject_cxx_config.cmake"
+################################
+# 遵循 kmcmake 提供的编译器标志：
+# ${KMCMAKE_DEFAULT_COPTS}
+# ${KMCMAKE_TEST_COPTS}
+# ${KMCMAKE_ARCH_OPTION}（默认启用，如 Haswell 架构）
+# ${KMCMAKE_RANDOM_RANDEN_COPTS}
+##############################################################################
+set(KMCMAKE_CXX_OPTIONS ${KMCMAKE_DEFAULT_COPTS} ${KMCMAKE_ARCH_OPTION} ${KMCMAKE_RANDEN_COPTS})
+###############################
+#
+# 在此定义你的选项  <-- kmcmake 预留定制区域
+# 示例：list(APPEND KMCMAKE_CXX_OPTIONS "-fopenmp")  # kmcmake 示例注释
+# 1. 禁用冗余警告
+list(APPEND KMCMAKE_CXX_OPTIONS 
+        "-Wno-redundant-move" 
+        "-Wno-deprecated-declarations" 
+        "-Wno-strict-aliasing"
+)
+# 2. 启用 OpenMP（并行计算）
+list(APPEND KMCMAKE_CXX_OPTIONS "-fopenmp")
+# 3. 启用 LTO（链接时优化，提升性能）
+list(APPEND KMCMAKE_CXX_OPTIONS "-flto")
+
+# 去重（避免与默认标志冲突）
+list(REMOVE_DUPLICATES KMCMAKE_CXX_OPTIONS)
+kmcmake_print_list_label("CXX_OPTIONS:" KMCMAKE_CXX_OPTIONS)  # 打印最终标志
+```
+
+### 关键定制规则
+1. **追加到 `KMCMAKE_CXX_OPTIONS`**：所有自定义标志必须添加到该变量（kmcmake 宏默认通过 `CXXOPTS` 使用）。
+2. **强制去重**：保留 `list(REMOVE_DUPLICATES KMCMAKE_CXX_OPTIONS)`，避免默认标志与自定义标志重复（如重复的 `-Wall`）。
+3. **编译器兼容性**：针对不同编译器使用条件逻辑（如 GCC/Clang 用 `-flto`，MSVC 用 `/LTCG`）：
+   ```cmake
+   # 跨编译器 LTO 配置
+   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+       list(APPEND KMCMAKE_CXX_OPTIONS "-flto")
+   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+       list(APPEND KMCMAKE_CXX_OPTIONS "/LTCG")
+   endif ()
+   ```
+
+## 步骤 3：验证最终标志
+按常规流程构建项目——kmcmake 会在配置阶段打印最终 `CXX_OPTIONS`（构建输出中可见）：
+```bash
+cd myproject  # 项目根目录
+cmake --build build
+```
+
+### 示例输出（GCC 编译器）
+```
+-- KMCMAKE 架构标志: -mavx2 -mfma -maes -msse4.1
+-- CXX_OPTIONS:
+- -Wall
+- -Wextra
+- -Wno-cast-qual
+- -Wformat-security
+- ... (其他默认标志)
+- -Wno-redundant-move
+- -fopenmp
+- -flto
+- -mavx2
+- -mfma
+```
+
+确认自定义标志已成功与 kmcmake 预设合并。
+
+## 步骤 4：高级定制（可选）
+### 覆盖默认标志
+如需替换默认标志（而非追加），在 `KMCMAKE_DEFAULT_COPTS` 加入 `KMCMAKE_CXX_OPTIONS` 前修改：
+```cmake
+# Release 构建时将 "-O2" 替换为 "-O3"（更高优化级别）
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    string(REPLACE "-O2" "-O3" KMCMAKE_DEFAULT_COPTS "${KMCMAKE_DEFAULT_COPTS}")
+endif ()
+```
+
+### 测试专属标志定制
+kmcmake 预定义了 `KMCMAKE_TEST_COPTS`（测试代码放松标志），可按需扩展：
+```cmake
+# 为测试代码添加额外放松警告
+list(APPEND KMCMAKE_TEST_COPTS "-Wno-unused-variable" "-Wno-missing-prototypes")
+```
+
+## 核心总结（kmcmake 标志设计核心）
+1. **高效预设**：预配置编译器/架构专属标志——常见场景无需编写冗余代码。
+2. **集中控制**：所有标志统一在 `cmake/myproject_cxx_config.cmake` 管理，无分散的 `set(CMAKE_CXX_FLAGS)` 调用。
+3. **无缝合并**：自定义标志与预设自动合并并去重，保障兼容性。
+4. **透明验证**：`kmcmake_print_list_label` 清晰展示最终标志，无需猜测配置效果。
+
+该设计平衡了「开箱即用」的便捷性（预定义生产级标志）与灵活性（项目专属调整），完全契合 kmcmake「约定优于配置」的核心理念。

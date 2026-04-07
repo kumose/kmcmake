@@ -1,0 +1,223 @@
+# `kmcmake_cc_library`：单函数构建灵活、生产级 C++ 库
+`kmcmake_cc_library` 是 kmcmake 用于定义 C++ 库的核心宏——旨在消除重复冗余的 CMake 模板代码，同时支持对库属性（可见性、依赖项、包含路径等）的**精细控制**。它会自动生成静态库（`_static` 后缀）和共享库（`_shared` 后缀）两种目标，强制统一命名规范，并与现代 CMake 的目标化工作流完美对齐。
+
+无论你是构建小型内部库还是面向公众的共享库，该宏都能通过合理默认值和显式配置选项，简化库的构建流程。
+
+## 核心特性概览
+- **双库类型自动生成**：一键生成静态库（`lib<name>.a`/`.lib`）和共享库（`lib<name>.so`/`.dll`），无需手动定义两种目标。
+- **命名规范统一**：创建别名（如 `namespace::name` 对应共享库、`namespace::name_static` 对应静态库），跨项目链接更可靠。
+- **可见性精细控制**：分离 `PUBLIC`/`PRIVATE` 包含路径、宏定义和依赖项（现代 CMake 传递性属性继承的关键）。
+- **依赖项灵活支持**：兼容标准 CMake 目标（如 `Threads::Threads`）、系统库和第三方包。
+- **零模板代码**：自动处理安装规则、位置无关代码（PIC）、共享库版本控制和别名创建，无需手动编写。
+
+## 完整语法与参数说明
+宏采用声明式键值对语法，所有参数均为可选，但需满足：`NAME`（若缺失则从父目录自动推断）和 `SOURCES`/`OBJECTS`（至少需指定一个以构建库）。
+
+```cmake
+kmcmake_cc_library(
+    # 可选标志（无值，存在即启用）
+    PUBLIC                # 标记为公共库（安装目标/头文件；默认：INTERNAL 内部库）
+    EXCLUDE_SYSTEM        # 禁用包含目录的 "SYSTEM" 标志（默认启用，抑制系统头文件警告）
+
+    # 必选/可选标识符
+    NAME <library_name>   # 库名称（如 "foo"）；若缺失则从父目录自动推断（如目录 foo/ → 名称 foo）
+    NAMESPACE <ns>        # 库别名的命名空间（如 "myproject"）；默认值为 ${PROJECT_NAME}
+
+    # 源文件/对象文件（SOURCES/OBJECTS 至少需指定一个）
+    SOURCES <src1.cc> <src2.cc> ...  # C++ 源文件（.cc/.cpp）
+    OBJECTS <obj_target1> <obj_target2> ...  # 预构建的对象库目标（来自 kmcmake_cc_object）
+    HEADERS <hdr1.h> <hdr2.h> ...    # 头文件（仅用于 IDE 可见性，编译无需指定）
+
+    # 预处理器定义
+    DEFINES <DEF1=1> <DEF2> ...      # 预处理器宏（仅作用于当前库，不传递给链接目标）
+
+    # 包含目录（按可见性分离）
+    INCLUDES <dir1> <dir2> ...       # PUBLIC 包含目录（链接目标会自动继承）
+    PINCLUDES <dir1> <dir2> ...      # PRIVATE 包含目录（仅当前库可用）
+
+    # 依赖项（按可见性分离）
+    LINKS <target1> <target2> ...    # PUBLIC 链接目标（链接目标会自动继承依赖）
+    PLINKS <target1> <target2> ...   # PRIVATE 链接目标（仅当前库链接，不暴露给用户）
+    WLINKS <target1> <target2> ...   # PRIVATE "全归档" 链接目标（链接整个库，无符号遗漏）
+
+    # 编译器选项（覆盖默认 KMCMAKE_CXX_OPTIONS）
+    COPTS <c_flag1> <c_flag2> ...    # C 编译器标志（用于 C 源文件）
+    CXXOPTS <cxx_flag1> <cxx_flag2> ...  # C++ 编译器标志（用于 C++ 源文件）
+    CUOPTS <cuda_flag1> ...          # CUDA 编译器标志（适用于含 CUDA 源文件的库）
+
+    # 可选：构建依赖目标（控制构建顺序）
+    DEPS <dep_target1> <dep_target2> ...  # 需在当前库前构建的目标（如 Protobuf 生成代码）
+)
+```
+
+### 关键参数详情
+| 参数               | 用途与行为                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `PUBLIC`                | 标记为公共库：安装库目标、头文件和导出规则（支持 `find_package()` 外部调用）。内部库省略此标志（不安装）。 |
+| `EXCLUDE_SYSTEM`        | 默认情况下，`INCLUDES`/`PINCLUDES` 会添加 CMake 的 `SYSTEM` 标志（抑制系统头文件警告）。使用此标志可禁用该行为。 |
+| `NAME`                  | 库核心名称（如 "foo" → 生成 `libfoo.so`/`libfoo.a`）。若缺失，自动从父目录名称推断（如 `myproject/foo/` → 名称 `foo`）。 |
+| `NAMESPACE`             | 库别名的命名空间（如 "myproject" → 别名 `myproject::foo`）。默认值为项目名称 `${PROJECT_NAME}`。 |
+| `SOURCES`/`OBJECTS`     | `SOURCES`：待编译的 C++ 源文件；`OBJECTS`：预构建的对象库（来自 `kmcmake_cc_object`），用于避免重复编译。 |
+| `DEFINES`               | 预处理器宏（如 `USE_DOUBLE=1`），仅作用于当前库（不传递给链接目标，适用于私有宏定义）。 |
+| `INCLUDES`              | PUBLIC 包含目录：链接当前库的目标会自动继承这些路径（如 `/path/to/public/include`，支持用户 `#include <foo.h>`）。 |
+| `PINCLUDES`             | PRIVATE 包含目录：仅当前库可使用这些路径（如 `/path/to/internal/include`，内部头文件不暴露给用户）。 |
+| `LINKS`                 | PUBLIC 链接目标：链接当前库的目标会自动继承这些依赖（如 `spdlog::spdlog`，用户需确保依赖可用）。 |
+| `PLINKS`                | PRIVATE 链接目标：仅当前库链接这些依赖（如 `Threads::Threads`，用户无需感知该依赖）。 |
+| `WLINKS`                | "全归档" 链接：链接目标的完整符号（适用于静态库中隐藏符号的场景）。底层通过 `$<LINK_LIBRARY:WHOLE_ARCHIVE,target>` 实现。 |
+| `COPTS`/`CXXOPTS`/`CUOPTS` | 覆盖默认编译器标志（来自 `KMCMAKE_CXX_OPTIONS`），用于库专属的编译配置。 |
+| `DEPS`                  | 构建依赖：确保指定目标在当前库前构建（如 Protobuf 生成的代码目标），避免因构建顺序错误导致的文件缺失。 |
+
+## 关键默认行为
+- **双目标自动生成**：始终生成静态库（`_static` 后缀）和共享库（`_shared` 后缀），并创建别名：
+  - 共享库：`namespace::name`（如 `myproject::foo` → `libfoo.so`）。
+  - 静态库：`namespace::name_static`（如 `myproject::foo_static` → `libfoo.a`）。
+- **PIC 自动启用**：对象目标默认启用位置无关代码（PIC），确保兼容共享库构建。
+- **共享库版本控制**：共享库自动使用 `${PROJECT_VERSION}` 进行版本标记（如 `libfoo.so.0.0.5`），并设置 `SOVERSION` 为 `${PROJECT_VERSION_MAJOR}`（遵循 CMake 最佳实践）。
+- **安装规则自动生成**：若指定 `PUBLIC` 标志，库会安装到标准路径：
+  - 共享库/静态库：`${CMAKE_INSTALL_LIBDIR}`（如 `/usr/local/lib`）。
+  - 头文件：`${CMAKE_INSTALL_INCLUDEDIR}`（自动从 `INCLUDES` 路径继承）。
+- **传递性属性继承**：`INCLUDES` 和 `LINKS` 中配置的路径和依赖，会自动传递给所有链接当前库的目标（现代 CMake 目标化设计的核心）。
+
+## 实用使用示例
+以下是常见场景示例，展示 `kmcmake_cc_library` 在实际项目中的用法。
+
+### 示例 1：基础公共库（共享库 + 静态库）
+定义含源文件、公共/私有包含路径和依赖项的公共库：
+```cmake
+# myproject/foo/CMakeLists.txt
+kmcmake_cc_library(
+    PUBLIC                  # 标记为公共库（安装目标和头文件）
+    NAME foo                # 库名称：foo → libfoo.so/libfoo.a
+    NAMESPACE myproject     # 别名：myproject::foo（共享）、myproject::foo_static（静态）
+    SOURCES
+        foo.cc              # 核心源文件
+        foo_utils.cc        # 辅助源文件
+    HEADERS
+        foo.h               # 公共头文件（IDE 可见）
+        foo_utils.h         # 内部头文件（仍会被安装）
+    INCLUDES
+        ${PROJECT_SOURCE_DIR}/myproject  # 公共包含路径：用户可 #include <foo.h>
+    PINCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}      # 私有包含路径（内部头文件）
+    DEFINES
+        FOO_USE_LOGGING=1    # 私有宏定义（仅当前库生效）
+    LINKS
+        spdlog::spdlog       # 公共依赖（用户需同时链接 spdlog）
+    PLINKS
+        Threads::Threads     # 私有依赖（用户无需感知）
+    DEPS
+        myproject::api       # 构建依赖（api 目标先于当前库构建）
+)
+```
+
+#### 结果：
+- 生成目标：`foo_shared`（共享库）、`foo_static`（静态库）。
+- 生成别名：`myproject::foo`（共享库）、`myproject::foo_static`（静态库）。
+- 安装结果：`libfoo.so`/`libfoo.a` 安装到 `/usr/local/lib`，头文件安装到 `/usr/local/include/myproject`。
+- 用户链接 `myproject::foo` 时，自动获得：
+  - 公共包含路径（支持 `#include <foo.h>`）。
+  - 传递依赖 `spdlog::spdlog`（无需手动链接）。
+
+### 示例 2：内部库（不安装）
+定义仅项目内部使用的私有库（无安装规则，不导出）：
+```cmake
+# myproject/internal/CMakeLists.txt
+kmcmake_cc_library(
+    NAME internal_utils     # 无 PUBLIC 标志 → 不安装
+    NAMESPACE myproject
+    SOURCES
+        internal_utils.cc
+    PINCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}  # 仅当前库可用的包含路径
+    PLINKS
+        gflags::gflags      # 私有依赖（仅内部使用）
+)
+```
+
+#### 结果：
+- 生成目标：`internal_utils_shared`（共享库）、`internal_utils_static`（静态库）。
+- 生成别名：`myproject::internal_utils`（共享库）、`myproject::internal_utils_static`（静态库）。
+- 不安装、不导出，仅能在项目内部链接使用。
+
+### 示例 3：基于对象库的库（复用编译结果）
+复用预构建的对象库（来自 `kmcmake_cc_object`），避免重复编译相同源文件：
+```cmake
+# 第一步：定义可复用的对象库
+kmcmake_cc_object(
+    NAME common_objects
+    SOURCES
+        common.cc
+        shared_functions.cc
+)
+
+# 第二步：在新库中复用对象库
+kmcmake_cc_library(
+    PUBLIC
+    NAME bar
+    NAMESPACE myproject
+    OBJECTS
+        myproject::common_objects  # 复用对象库（无需重新编译）
+    SOURCES
+        bar.cc  # 额外的库专属源文件
+    LINKS
+        myproject::foo  # 链接项目内其他库
+)
+```
+
+### 示例 4：全归档链接（WLINKS）
+链接静态库的完整符号（适用于插件或含隐藏符号的静态库场景）：
+```cmake
+kmcmake_cc_library(
+    PUBLIC
+    NAME plugin_loader
+    NAMESPACE myproject
+    SOURCES
+        plugin_loader.cc
+    WLINKS
+        myproject::plugin_core  # 全归档链接 plugin_core 静态库（无符号遗漏）
+)
+```
+
+## 如何链接该库
+其他目标（库或可执行文件）可通过生成的别名链接当前库，静态库和共享库的链接语法保持一致：
+```cmake
+# 链接共享库（默认别名）
+target_link_libraries(my_app PRIVATE myproject::foo)
+
+# 链接静态库（显式 _static 别名）
+target_link_libraries(my_app PRIVATE myproject::foo_static)
+```
+
+外部项目可通过 `find_package()` 调用公共库，链接语法完全相同：
+```cmake
+find_package(myproject REQUIRED)
+target_link_libraries(external_app PRIVATE myproject::foo)
+```
+
+## 关键最佳实践
+1. **谨慎使用 `PUBLIC` 标志**：仅对外部项目需使用的库标记 `PUBLIC`。内部库省略该标志，避免污染安装目录。
+2. **优先使用目标而非路径**：在 `LINKS`/`PLINKS` 中使用 CMake 目标（如 `Threads::Threads`、`spdlog::spdlog`），而非原始库路径
+     （如 `-lpthread`）——kmcmake 会自动处理传递依赖和路径解析。
+3. **`DEFINES` 仅用于私有宏**：`DEFINES` 配置的宏仅作用于当前库。若需让用户继承宏定义，需手动通过 `target_compile_definitions()` 并
+      指定 `PUBLIC`。
+4. **利用 `OBJECTS` 复用编译结果**：对多个库共用的源文件，优先通过 `kmcmake_cc_object` 生成对象库，再通过 `OBJECTS` 参数复用，
+     减少编译时间。
+5. **保持命名空间一致性**：使用项目统一的命名空间（如 `myproject`），让用户链接时更直观（避免别名混乱）。
+
+## 为何该宏优于原生 CMake
+原生 CMake 需编写数百行代码才能实现 `kmcmake_cc_library` 几行代码的功能，包括：
+- 手动定义静态库和共享库目标（`add_library(foo SHARED ...)`/`add_library(foo STATIC ...)`）。
+- 手动配置版本控制、PIC、输出名称（`set_target_properties()`）。
+- 手动设置包含路径和依赖项的可见性（`target_include_directories()`/`target_link_libraries()`）。
+- 手动编写安装和导出规则（`install()`/`export()`/`configure_package_config_file()`）。
+- 手动创建别名（`add_alias_target()`）。
+
+该宏封装了现代 CMake 最佳实践，同时保持配置的显式性和灵活性——无幕后"黑魔法"，既简化开发又不牺牲控制权。
+
+## 最终说明
+- **CUDA 支持**：通过 `CUOPTS` 参数可配置 CUDA 专属编译标志，完美支持含 `.cu` 源文件的库构建。
+- **未解析参数警告**：宏会对未识别的参数抛出警告，帮助排查拼写错误（如 `LINKED_TARGETS` 误写为 `LINKS`）。
+- **原生 CMake 兼容性**：生成的库目标完全兼容原生 CMake 函数，可通过 `target_compile_options()` 或 `set_target_properties()`
+    进一步扩展配置。
+
+`kmcmake_cc_library` 是 kmcmake 库构建系统的基石——平衡了简洁性（合理默认值）和控制性（精细参数），可支持从小型内部库到大型跨平台公共库的各类场景。

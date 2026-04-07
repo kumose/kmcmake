@@ -69,6 +69,7 @@
 #define KMCMAKE_SIMD_LEVEL_BMI2 @KMCMAKE_SIMD_LEVEL_BMI2_VAL@
 #define KMCMAKE_SIMD_LEVEL_FMA @KMCMAKE_SIMD_LEVEL_FMA_VAL@
 #define KMCMAKE_SIMD_LEVEL_MOVBE @KMCMAKE_SIMD_LEVEL_MOVBE_VAL@
+#define KMCMAKE_RUNTIME_SIMD_LEVEL "@KMCMAKE_RUNTIME_SIMD_LEVEL@"
 
 ///////////////////////////////////////////////////////////////////////////////////
 /// git and version region

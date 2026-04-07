@@ -1,0 +1,261 @@
+# `kmcmake_cc_proto`：零 IDE 配置，高效生成 Protobuf C++ 代码
+`kmcmake_cc_proto` 是 kmcmake 专为 Protocol Buffers（`*.proto`）定义文件设计的代码生成宏——自动完成从调用 Protobuf 编译器（`protoc`）、管理包含路径到构建依赖的全流程。它遵循「源码目录输出 + Git 忽略生成文件」的最佳实践，确保 IDE 无需额外配置即可识别项目文件，彻底告别手动调用 `protoc` 和 CMake 自定义命令的冗余模板。
+
+无论是 RPC 通信、数据存储还是跨服务数据序列化场景，该宏都能让 Protobuf 代码生成与 kmcmake 核心构建系统无缝集成，大幅提升开发效率。
+
+## 核心特性概览
+- **无需手动调用 `protoc`**：自动触发 `protoc` 编译，内置正确的包含路径和输出参数，无需手动拼接命令。
+- **IDE 友好**：生成的 `.pb.cc`/`.pb.h` 文件直接输出到源码目录（与 `*.proto` 同目录），CLion、VS Code、Visual Studio 等 IDE 可直接识别，无需额外配置。
+- **Git 仓库清洁**：生成文件默认通过 `.gitignore` 排除在版本控制外，避免仓库冗余。
+- **智能依赖管理**：仅在 `*.proto` 文件或依赖项变更时重新生成代码，无多余编译开销。
+- **kmcmake 无缝集成**：输出生成文件列表（`{NAME}_SRCS`/`{NAME}_HDRS`），可直接接入 `kmcmake_cc_object`、`kmcmake_cc_library` 或 `kmcmake_cc_binary`。
+- **包含路径灵活配置**：支持项目级和自定义包含目录，轻松处理嵌套或导入的 `*.proto` 文件。
+
+## 完整语法与参数说明
+宏采用声明式语法，包含必填和可选参数，兼顾简洁性与常用场景覆盖。
+
+```cmake
+kmcmake_cc_proto(
+    # 可选标志（布尔型：存在即启用对应行为）
+    PUBLIC                # 标记生成目标为公共（用于需安装的库；默认：内部使用）
+    EXCLUDE_SYSTEM        # 禁用 Protobuf 包含目录的 "SYSTEM" 标志（默认抑制系统头文件警告）
+
+    # 必选参数（必须指定）
+    NAME <proto_target>   # Protobuf 生成目标的唯一名称（如 "proto_obj"）——用于导出文件列表
+    OUTDIR <output_dir>   # 生成 .pb.cc/.pb.h 文件的目录（推荐 ${PROJECT_SOURCE_DIR} 以兼容 IDE）
+
+    # 列表参数
+    PROTOS <proto1.proto> <proto2.proto> ...  # 待编译的 *.proto 文件列表（必填：至少一个）
+    DEPS <dep1> <dep2> ...                    # 构建依赖（如导入的 Protobuf 目标、protoc 本身）
+    INCLUDES <dir1> <dir2> ...                # protoc 自定义包含目录（用于解析导入的第三方 *.proto 文件）
+)
+```
+
+### 关键参数详情
+| 参数               | 用途与行为                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `PUBLIC`                | 标记生成代码为公共库的一部分（适用于通过 `kmcmake_cc_library(PUBLIC)` 安装的库）。内部使用的生成代码省略此标志。 |
+| `EXCLUDE_SYSTEM`        | 默认情况下，Protobuf 包含目录（`PROTOBUF_INCLUDE_DIRS`）被视为「系统目录」（抑制编译器警告）。使用此标志可禁用该行为（如调试 Protobuf 头文件时）。 |
+| `NAME`                  | **必填**：Protobuf 生成目标的唯一标识。向父作用域导出两个变量：<br/>- `${NAME}_SRCS`：生成的 `.pb.cc` 源文件列表；<br/>- `${NAME}_HDRS`：生成的 `.pb.h` 头文件列表。 |
+| `OUTDIR`                | **必填**：生成文件的输出目录。推荐设置为 `${PROJECT_SOURCE_DIR}`（源码根目录），使生成文件与 `*.proto` 同目录，IDE 可直接识别。 |
+| `PROTOS`                | **必填**：待编译的 `*.proto` 文件列表。支持相对路径（如 `proto/common.proto`）和绝对路径。 |
+| `DEPS`                  | 生成代码的构建依赖。若 `*.proto` 文件导入了其他生成的 Protobuf 文件（如第三方 Protobuf 目标），需在此指定依赖，确保构建顺序正确。 |
+| `INCLUDES`              | `protoc` 的自定义包含目录（传递 `-I<dir>` 参数）。用于解析不在项目根目录的导入 `*.proto` 文件（如 `third_party/protobuf/include`）。 |
+
+### 核心依赖要求
+- 系统需安装 Protobuf 库和 `protoc` 编译器（宏内部调用 `find_package(Protobuf REQUIRED)`，未找到时会构建失败）。
+- 生成的 C++ 代码依赖 Protobuf 运行时库（`protobuf::libprotobuf`），使用生成代码的目标必须链接该库。
+
+## 最佳实践工作流（示例演示）
+该宏设计用于平衡 IDE 兼容性、仓库清洁度和构建效率的工作流，步骤如下：
+
+### 1. 组织 `*.proto` 文件
+将 `*.proto` 文件放在独立目录（如 `proto/`），结构清晰：
+```
+project_root/
+├── proto/
+│   ├── common.proto
+│   ├── db.interface.proto
+│   └── ...（其他 *.proto 文件）
+├── src/
+├── tests/
+└── CMakeLists.txt
+```
+
+### 2. Git 忽略生成文件
+在 `.gitignore` 中添加生成文件规则，保持仓库清洁：
+```gitignore
+# .gitignore
+# Protobuf 生成文件
+proto/*.pb.h
+proto/*.pb.cc
+# 若使用嵌套 proto 目录：
+# proto/**/*.pb.h
+# proto/**/*.pb.cc
+```
+
+### 3. 用 `kmcmake_cc_proto` 生成代码
+调用宏生成 C++ 文件，推荐设置 `OUTDIR ${PROJECT_SOURCE_DIR}`，使生成文件与 `*.proto` 同目录（如 `proto/common.proto` →
+ `proto/common.pb.h`/`proto/common.pb.cc`）。
+
+### 4. 用 `kmcmake_cc_object` 封装生成代码
+将生成的 `.pb.cc` 文件封装为可复用的对象库，避免多目标重复编译。
+
+### 5. 链接对象库到目标
+通过 `LINKS` 参数将 Protobuf 对象库链接到项目库或可执行文件（如 `kmdb::proto_obj`）。
+
+## 实用使用示例
+以下是覆盖常见 Protobuf 场景的生产级示例。
+
+### 示例 1：基础 Protobuf 代码生成（演示核心流程）
+生成 `*.proto` 对应的 C++ 代码，并封装为对象库：
+```cmake
+# 步骤 1：定义 *.proto 文件列表
+set(PROTO_FILES
+    proto/common.proto
+    proto/db.interface.proto
+    proto/expr.proto
+    proto/raft.proto
+)
+
+# 步骤 2：生成 C++ 代码
+kmcmake_cc_proto(
+    NAME proto_obj          # 导出变量：proto_obj_SRCS、proto_obj_HDRS
+    OUTDIR ${PROJECT_SOURCE_DIR}  # 生成文件到源码根目录（与 *.proto 同目录）
+    PROTOS ${PROTO_FILES}   # 待编译的 *.proto 文件
+    INCLUDES ${PROJECT_SOURCE_DIR}/proto  # 自定义包含目录（解析嵌套导入）
+)
+
+# 步骤 3：将生成代码封装为对象库（可复用）
+kmcmake_cc_object(
+    NAMESPACE kmdb          # 别名：kmdb::proto_obj
+    NAME proto_obj
+    SOURCES ${proto_obj_SRCS}  # 生成的 .pb.cc 文件
+    CXXOPTS ${KMCMAKE_CXX_OPTIONS}  # 继承项目编译器标志
+)
+
+# 步骤 4：将 Protobuf 对象库链接到项目库
+kmcmake_cc_library(
+    PUBLIC
+    NAME db_core
+    NAMESPACE kmdb
+    SOURCES src/db_core.cc
+    LINKS
+        kmdb::proto_obj     # 链接生成的 Protobuf 对象库
+        protobuf::libprotobuf  # 链接 Protobuf 运行时库
+)
+```
+
+#### 结果：
+- 生成 `proto/common.pb.h`、`proto/common.pb.cc` 等文件，与 `*.proto` 同目录。
+- IDE 自动识别生成的头文件和源文件，无需额外配置。
+- `kmdb::proto_obj` 对象库可复用在多个目标中，避免重复编译。
+
+### 示例 2：导入第三方 Protobuf 文件
+若 `*.proto` 导入了第三方 Protobuf 定义（如 Google 的 `any.proto` 或自定义第三方 proto），通过 `INCLUDES` 指定第三方包含目录：
+```cmake
+# 步骤 1：查找第三方 Protobuf 包
+find_package(Protobuf REQUIRED)
+find_package(GoogleProtobufExtra REQUIRED)  # 假设的第三方 Protobuf 包
+
+# 步骤 2：定义导入第三方 proto 的 *.proto 文件
+set(PROTO_FILES
+    proto/extended_db.proto  # 导入 "google/protobuf/any.proto" 或 "third_party/custom.proto"
+)
+
+# 步骤 3：生成代码（指定第三方包含目录）
+kmcmake_cc_proto(
+    NAME extended_proto_obj
+    OUTDIR ${PROJECT_SOURCE_DIR}
+    PROTOS ${PROTO_FILES}
+    INCLUDES
+        ${PROJECT_SOURCE_DIR}/proto
+        ${GoogleProtobufExtra_INCLUDE_DIRS}  # 第三方 proto 包含目录
+    DEPS ${GoogleProtobufExtra_PROTOS}  # 第三方 proto 构建依赖
+)
+
+# 步骤 4：封装为对象库
+kmcmake_cc_object(
+    NAMESPACE kmdb
+    NAME extended_proto_obj
+    SOURCES ${extended_proto_obj_SRCS}
+    LINKS protobuf::libprotobuf
+)
+```
+
+### 示例 3：直接用于可执行目标
+简单场景下，可直接将生成代码链接到可执行文件（无需中间对象库）：
+```cmake
+# 步骤 1：生成 Protobuf 代码
+kmcmake_cc_proto(
+    NAME rpc_proto
+    OUTDIR ${PROJECT_SOURCE_DIR}
+    PROTOS proto/rpc.proto
+)
+
+# 步骤 2：链接生成代码到可执行文件
+kmcmake_cc_binary(
+    PUBLIC
+    NAME rpc_client
+    SOURCES src/rpc_client.cc
+    LINKS
+        ${rpc_proto_SRCS}  # 直接链接生成的 .pb.cc 文件
+        protobuf::libprotobuf
+    INCLUDES ${PROJECT_SOURCE_DIR}/proto  # 解析生成的头文件
+)
+```
+
+## 关键最佳实践
+1. **生成文件到源码目录**：设置 `OUTDIR ${PROJECT_SOURCE_DIR}`，使生成文件与 `*.proto` 同目录——这是 IDE 无需额外配置即可识别的核心。
+2. **Git 忽略生成文件**：务必将 `.pb.cc`/`.pb.h` 排除在版本控制外，生成代码属于构建产物，不应入库。
+3. **封装为对象库**：多目标复用生成代码时，优先用 `kmcmake_cc_object` 封装，减少编译时间。
+4. **链接 Protobuf 运行时**：生成代码依赖 `protobuf::libprotobuf`，使用生成代码的目标必须手动链接该库（宏不自动处理）。
+5. **导入文件需配置 `INCLUDES`**：`*.proto` 导入本地或第三方 proto 时，通过 `INCLUDES` 指定包含目录，确保 `protoc` 能解析导入路径。
+6. **避免硬编码路径**：使用项目变量（如 `${PROJECT_SOURCE_DIR}`、`${CMAKE_CURRENT_SOURCE_DIR}`）替代绝对路径，保证配置可移植。
+
+## 为何优于原生 CMake
+原生 CMake 需编写大量易错的自定义命令和文件管理代码才能实现相同功能。例如，上述基础示例的原生 CMake 等效代码约 50 行：
+```cmake
+# 原生 CMake 等效代码（冗长且易出错）
+find_package(Protobuf REQUIRED)
+
+set(PROTO_FILES
+    proto/common.proto
+    proto/db.interface.proto
+)
+
+set(PROTO_SRCS "")
+set(PROTO_HDRS "")
+
+foreach (PROTO IN LISTS PROTO_FILES)
+    get_filename_component(PROTO_ABS ${PROTO} ABSOLUTE)
+    get_filename_component(PROTO_NAME_WE ${PROTO} NAME_WE)
+    get_filename_component(PROTO_DIR ${PROTO_ABS} DIRECTORY)
+
+    set(HDR ${PROTO_DIR}/${PROTO_NAME_WE}.pb.h)
+    set(SRC ${PROTO_DIR}/${PROTO_NAME_WE}.pb.cc)
+
+    list(APPEND PROTO_SRCS ${SRC})
+    list(APPEND PROTO_HDRS ${HDR})
+
+    add_custom_command(
+        OUTPUT ${HDR} ${SRC}
+        COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+            -I${PROTOBUF_INCLUDE_DIRS}
+            -I${PROJECT_SOURCE_DIR}
+            --cpp_out=${PROJECT_SOURCE_DIR}
+            ${PROTO_ABS}
+        DEPENDS ${PROTO_ABS}
+    )
+endforeach ()
+
+add_library(proto_obj OBJECT ${PROTO_SRCS})
+target_compile_options(proto_obj PRIVATE ${KMCMAKE_CXX_OPTIONS})
+add_library(kmdb::proto_obj ALIAS proto_obj)
+
+# 还需手动处理 Protobuf 运行时链接和其他目标集成！
+```
+
+`kmcmake_cc_proto` 将上述代码浓缩为几行声明式配置，优势如下：
+- 自动处理包含路径解析和生成文件管理；
+- 导出文件列表变量，无缝集成 kmcmake 其他宏；
+- 仅在依赖变更时重新生成，避免冗余构建；
+- 内置最佳实践，减少人为错误。
+
+## 最终说明
+- **Protobuf 版本兼容性**：宏使用 CMake 的 `FindProtobuf` 模块，支持 Protobuf 3.x 及以上版本。确保 `*.proto` 文件与安装
+    的 Protobuf 版本兼容。
+- **生成代码警告抑制**：Protobuf 生成代码可能产生编译器警告，可在对象库中添加目标专属警告抑制标志：
+  ```cmake
+  kmcmake_cc_object(
+      NAMESPACE kmdb
+      NAME proto_obj
+      SOURCES ${proto_obj_SRCS}
+      CXXOPTS ${KMCMAKE_CXX_OPTIONS} -Wno-unused-parameter -Wno-sign-compare
+  )
+  ```
+- **跨平台支持**：完美兼容 Linux、macOS 和 Windows，自动处理 `protoc` 路径和生成文件格式，支持交叉编译。
+- **详细日志**：宏通过 `message(STATUS)` 打印 `protoc` 命令行，便于调试包含路径或导入问题。
+
+`kmcmake_cc_proto` 是 Protobuf 相关 C++ 项目的必备工具——它简化了代码生成流程，确保 IDE 兼容性，同时与 kmcmake 构建系统深度集成，
+让开发者无需关注底层细节，专注于业务逻辑实现。

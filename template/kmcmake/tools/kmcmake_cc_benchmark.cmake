@@ -21,7 +21,9 @@
 function(kmcmake_cc_bm)
     set(options
             DISABLED
+            SKIP
             EXT
+            EXCLUDE_SYSTEM
     )
     set(args NAME
             MODULE
@@ -62,11 +64,16 @@ function(kmcmake_cc_bm)
         message("-----------------------------------")
     endif ()
     set(${KMCMAKE_CC_BM_NAME}_INCLUDE_SYSTEM SYSTEM)
-    if (KMCMAKE_CC_LIB_EXCLUDE_SYSTEM)
+    if (KMCMAKE_CC_BM_EXCLUDE_SYSTEM)
         set(${KMCMAKE_CC_BM_NAME}_INCLUDE_SYSTEM "")
     endif ()
 
+    set(KMCMAKE_BUILD_THIS_TEST ON)
     set(KMCMAKE_RUN_THIS_TEST ON)
+    if (KMCMAKE_CC_BM_DISABLED)
+        set(KMCMAKE_BUILD_THIS_TEST OFF)
+        set(KMCMAKE_RUN_THIS_TEST OFF)
+    endif ()
     if (KMCMAKE_CC_BM_SKIP)
         set(KMCMAKE_RUN_THIS_TEST OFF)
     endif ()
@@ -76,6 +83,10 @@ function(kmcmake_cc_bm)
     set(testcase ${KMCMAKE_CC_BM_MODULE}_${KMCMAKE_CC_BM_NAME})
     if (${KMCMAKE_CC_BM_MODULE} IN_LIST ${PROJECT_NAME}_SKIP_BENCHMARK)
         set(KMCMAKE_RUN_THIS_TEST OFF)
+    endif ()
+
+    if (NOT KMCMAKE_BUILD_THIS_TEST)
+        return()
     endif ()
 
     add_executable(${testcase} ${KMCMAKE_CC_BM_SOURCES})

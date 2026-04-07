@@ -1,0 +1,185 @@
+# kmcmake-Generated Export Configuration: `myproject_config.cmake`
+
+kmcmake simplifies project sharing with a standardized CMake export system—powered by `cmake/myproject_config.cmake.in`
+ (template) and the generated `myproject_config.cmake` (installed with your project). This configuration enables external projects to seamlessly reference your kmcmake-built libraries via `find_package()`, following modern CMake conventions for consistency and ease of use.
+
+## Core Purpose of Export Configuration
+- **Standardized Discovery**: Lets external projects locate your library targets (e.g., `myproject::foo_static`), 
+include directories, and version info using `find_package(myproject REQUIRED)`.
+- **Stable Target Naming**: Exposes consistent, predictable target names for static/dynamic libraries (e.g., 
+`myproject::foo_static` for static builds, `myproject::foo_shared` for shared builds).
+- **Dependency Transparency**: Encapsulates private dependencies (so external projects don’t need to manually 
+link them) while leaving public dependencies to user control—balancing convenience and flexibility.
+- **Version Awareness**: Exports project version metadata, supporting version constraints (e.g., 
+`find_package(myproject 1.2 REQUIRED)`).
+
+## Key Components of `myproject_config.cmake.in`
+The template file (`cmake/myproject_config.cmake.in`) is processed by kmcmake during installation to generate
+ the final `myproject_config.cmake` (installed to `lib/cmake/myproject/`). Below is a breakdown of its critical elements:
+
+### 1. Package Initialization
+```cmake
+@PACKAGE_INIT@
+```
+- CMake’s built-in placeholder that injects standard package initialization logic (e.g., validating installation
+ prefixes, setting `PACKAGE_PREFIX_DIR`).
+- Ensures compatibility with CMake’s `find_package()` workflow out of the box.
+
+### 2. Target Export Inclusion
+```cmake
+include ("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+```
+- References the generated `myprojectTargets.cmake` (auto-created by kmcmake), which defines the actual
+ library targets (`myproject::foo_static`/`myproject::foo_shared`) and their properties (link flags, include paths).
+- This line is the "bridge" between the export config and your library targets—without it, external
+ projects can’t access your libraries.
+
+### 3. Version Metadata Export
+```cmake
+set(@PROJECT_NAME@_VERSION_MAJOR @PROJECT_VERSION_MAJOR@)
+set(@PROJECT_NAME@_VERSION_MINOR @PROJECT_VERSION_MINOR@)
+set(@PROJECT_NAME@_VERSION_PATCH @PROJECT_VERSION_PATCH@)
+set(@PROJECT_NAME@_VERSION @PROJECT_VERSION@)
+```
+- Exposes your project’s semantic versioning as CMake variables for external use.
+- Enables external projects to enforce version constraints (e.g., `if(myproject_VERSION VERSION_LESS 1.2) 
+message(FATAL_ERROR "Requires myproject 1.2+") endif()`).
+
+### 4. Include Directory Export
+```cmake
+set(@PROJECT_NAME@_INCLUDE_DIR ${PACKAGE_PREFIX_DIR}/include)
+```
+- Exposes the installed include directory (e.g., `install_prefix/include`) as a CMake variable (`myproject_INCLUDE_DIR`).
+- External projects can use this to add include paths manually (though kmcmake targets already include this 
+automatically—see "Usage Example" below).
+
+### 5. Private Dependency Encapsulation (Critical Design)
+Use dependency recording helpers in `cmake/myproject_deps.cmake` instead of manually duplicating lookup logic in `myproject_config.cmake.in`:
+
+```cmake
+# cmake/myproject_deps.cmake
+kmcmake_private_find_package(ZLIB REQUIRED)
+kmcmake_private_find_library(MY_CRYPTO_LIB NAMES crypto)
+```
+
+These calls are recorded and auto-injected into generated `myprojectConfig.cmake` through:
+
+- `include(CMakeFindDependencyMacro)`
+- `@KMCMAKE_CONFIG_PRIVATE_FIND_SNIPPETS@`
+
+This keeps private dependency lookup centralized in one place and avoids config-template drift.
+
+### 6. Exported Target Metadata (SIMD/Flags)
+
+Exported `cc_library` and `cc_binary` targets now carry interface metadata properties that consumers can query after `find_package()`:
+
+- `INTERFACE_KMCMAKE_RUNTIME_SIMD_LEVEL`
+- `INTERFACE_KMCMAKE_ARCH_FLAGS`
+- `INTERFACE_KMCMAKE_CXX_OPTIONS`
+
+```cmake
+find_package(myproject REQUIRED)
+get_target_property(_simd myproject::foo_static INTERFACE_KMCMAKE_RUNTIME_SIMD_LEVEL)
+get_target_property(_arch myproject::foo_static INTERFACE_KMCMAKE_ARCH_FLAGS)
+get_target_property(_opts myproject::foo_static INTERFACE_KMCMAKE_CXX_OPTIONS)
+```
+
+## Stable Target Naming Convention
+kmcmake enforces predictable target names for exported libraries, ensuring consistency across builds:
+| Library Type | Exported Target Name          | Description                                  |
+|--------------|--------------------------------|----------------------------------------------|
+| Static       | `[PROJECT_NAME]::[LIB_NAME]_static` | e.g., `myproject::foo_static` (`.a`/`.lib`)  |
+| Dynamic      | `[PROJECT_NAME]::[LIB_NAME]_shared` | e.g., `myproject::foo_shared` (`.so`/`.dll`) |
+
+- **Why two targets?** Lets external projects explicitly choose static or dynamic linking (e.g.,
+ `target_link_libraries(my_app PRIVATE myproject::foo_static)`).
+- **Stability Guarantee**: Target names are derived from your `NAMESPACE` and `NAME` parameters
+ (from `kmcmake_cc_library`), so they never change unexpectedly—critical for external project reliability.
+
+## How to Use the Exported Project (External Project Example)
+Once your kmcmake project is installed (via `cmake --install build`), external projects can reference it in 3 simple steps:
+
+### Step 1: Install Your kmcmake Project
+First, install your project to a standard location (e.g., `/usr/local` on Linux, `C:\Program Files` on Windows):
+```bash
+cd myproject
+cmake --build build
+sudo cmake --install build  # Installs to /usr/local by default
+```
+
+### Step 2: External Project CMake Configuration
+Create a new external project (e.g., `external_app`) with the following `CMakeLists.txt`:
+```cmake title="external_app/CMakeLists.txt"
+cmake_minimum_required(VERSION 3.18)
+project(external_app)
+
+# 1. Find your exported kmcmake project (uses myproject_config.cmake)
+find_package(myproject 1.0 REQUIRED)  # Supports version constraints
+
+# 2. Create an executable and link to your library
+add_executable(external_app main.cc)
+
+# Link to the exported target (static or shared—choose one)
+target_link_libraries(external_app PRIVATE myproject::foo_static)
+# OR target_link_libraries(external_app PRIVATE myproject::foo_shared)
+
+# 3. No need to add include directories—kmcmake targets include them automatically!
+```
+
+### Step 3: External Project Code (`main.cc`)
+```cpp title="external_app/main.cc"
+#include <myproject/foo.h>  // Include your library's header (kmcmake sets include paths)
+#include <iostream>
+
+int main() {
+    std::cout << "Using myproject::foo from external app!\n";
+    myproject::foo();  // Call function from your exported library
+    return 0;
+}
+```
+
+### Step 4: Build the External Project
+```bash
+cd external_app
+mkdir build && cd build
+cmake ..  # CMake automatically finds myproject via myproject_config.cmake
+cmake --build build
+./external_app  # Runs the app linked to your kmcmake library
+```
+
+### Expected Output
+```
+Using myproject::foo from external app!
+Hello from myproject::foo!  # Output from your kmcmake library
+```
+
+## Key Best Practices
+1. **Never Modify Generated Files**:  
+   `myproject_config.cmake` and `myprojectTargets.cmake` are auto-generated during installation. 
+   Always edit the `myproject_config.cmake.in` template (in `cmake/`) for customizations—never edit 
+   the generated files directly.
+
+2. **Encapsulate Private Dependencies**:  
+   Record private lookups in `myproject_deps.cmake` with `kmcmake_private_find_package(...)` /
+   `kmcmake_private_find_library(...)` so generated config stays in sync automatically.
+
+3. **Document Public Dependencies**:  
+   Clearly document any public dependencies in your project’s README—external users will need to link these
+    manually (e.g., "This project requires `OpenSSL` for public API encryption—install via `apt-get install libssl-dev`").
+
+4. **Test Exported Targets**:  
+   Always test your exported project with an external app to ensure:
+   - `find_package()` works without additional configuration.
+   - Targets link correctly (no missing symbols from private dependencies).
+   - Include paths are resolved automatically.
+
+## Key Design Philosophy
+kmcmake’s export system follows **"standardized, minimal friction"** principles:
+- Aligns with modern CMake conventions (target-based, `find_package()`-compatible) so external users don’t 
+need to learn kmcmake-specific logic.
+- Separates private/public dependencies to balance convenience (encapsulated privates) and flexibility 
+(user-controlled publics).
+- Enforces stable target naming to avoid breaking external projects between versions.
+
+This design makes your kmcmake project as easy to reuse as any popular C++ library (e.g., `spdlog`, `gflags`), 
+while retaining kmcmake’s core advantage of minimal boilerplate for your own project.

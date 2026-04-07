@@ -1,0 +1,352 @@
+# kmcmake 测试宏：灵活、可扩展的 C++ 测试工作流简化方案
+
+kmcmake 提供三个互补的测试宏——`kmcmake_cc_test`、`kmcmake_cc_test_ext` 和 `kmcmake_cc_test_library`，专为简化 C++ 测试的搭建、执行和组织设计。它们与主流测试框架（如 Google Test、doctest）及 kmcmake 核心构建系统无缝集成，消除重复的测试相关 CMake 模板代码，同时支持参数化测试、测试结果验证、共享测试工具等高级场景。
+
+无论是单元测试、集成测试还是参数化测试，这套宏都能提供一致的声明式语法，从小型项目到大型代码库均能灵活适配。
+
+## 核心宏概览
+| 宏名称                  | 用途描述                                                                 |
+|-------------------------|--------------------------------------------------------------------------|
+| `kmcmake_cc_test`       | 定义基础测试可执行文件（注册为 CMake 测试目标），适用于常规测试场景。     |
+| `kmcmake_cc_test_ext`   | 扩展现有测试可执行文件，支持参数化测试、自定义参数或结果验证（通过正则匹配）。 |
+| `kmcmake_cc_test_library` | 构建共享的测试工具库（静态/共享库），存放可复用的测试工具（如 Mock 类、辅助函数）。 |
+
+所有宏均与 `kmcmake_cc_library`/`kmcmake_cc_binary` 共享一致的参数命名（如 `SOURCES`、`LINKS`、`CXXOPTS`），降低学习成本。
+
+## 1. `kmcmake_cc_test`：基础测试可执行文件
+定义测试目标的核心宏——将测试源文件编译为可执行文件，并注册为 CMake `add_test` 目标。适用于单元测试、集成测试或简单测试用例。
+
+### 语法
+```cmake
+kmcmake_cc_test(
+    # 可选标志
+    DISABLED               # 禁用测试（永不执行）
+    EXT                    # 标记为“可扩展”（不自动执行，需配合 kmcmake_cc_test_ext 使用）
+    EXCLUDE_SYSTEM         # 禁用包含目录的 "SYSTEM" 标志（默认抑制系统头文件警告）
+
+    # 必选参数
+    NAME <test_name>       # 测试名称（如 "foo_test"）
+    MODULE <module_name>   # 测试的逻辑分组（如 "base"、"utils"）——用于测试组织，必填
+
+    # 测试配置
+    SOURCES <src1.cc> ...  # 测试源文件（如 foo_test.cc）
+    DEPS <dep1> <dep2> ... # 构建依赖（如项目库、生成代码目标）
+    LINKS <lib1> <lib2> ...# 链接的库（如 gtest、myproject::foo）
+    DEFINES <DEF1> ...     # 测试专属预处理器宏
+    INCLUDES <dir1> ...    # 测试专属包含目录
+    COPTS <c_flags> ...    # C 编译器标志
+    CXXOPTS <cxx_flags> ...# C++ 编译器标志
+    CUOPTS <cuda_flags> ...# CUDA 编译器标志（用于 .cu 测试源文件）
+    COMMAND <custom_cmd>   # 覆盖默认测试命令（默认：直接运行测试可执行文件）
+)
+```
+
+### 关键细节
+- **测试命名规则**：生成唯一测试目标名 `{MODULE}_{NAME}`（如 `base_foo_test`），避免跨测试组冲突。
+- **自动执行行为**：默认自动执行测试，除非设置 `DISABLED` 或 `EXT` 标志。
+- **包含路径自动配置**：自动添加项目源目录/二进制目录，支持直接包含项目头文件（如 `#include "myproject/foo.h"` 或 `#include "version.h"`）。
+- **框架兼容性**：兼容任意测试框架（Google Test、doctest、Catch2），只需通过 `LINKS` 链接框架库。
+
+### 示例用法
+```cmake
+# Google Test 单元测试（测试 "foo" 库）
+kmcmake_cc_test(
+    NAME foo_test
+    MODULE utils          # 归类到 "utils" 模块
+    SOURCES foo_test.cc   # 测试源文件
+    DEPS myproject::foo   # 构建依赖：先构建 foo 库
+    LINKS
+        myproject::foo    # 链接被测试库
+        gtest             # 链接 Google Test 框架
+        gtest_main        # 链接 Google Test 主函数（提供 int main()）
+    CXXOPTS ${KMCMAKE_CXX_OPTIONS}  # 继承项目编译器标志
+)
+
+# Doctest 测试（无需单独的 main 函数）
+kmcmake_cc_test(
+    NAME foo_doctest
+    MODULE utils
+    SOURCES foo_doctest.cc  # Doctest 测试源文件（包含测试用例）
+    LINKS
+        myproject::foo
+        doctest             # 链接 doctest 框架
+    DEFINES DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN  # doctest 提供 main()
+)
+
+# 禁用的测试（暂不执行）
+kmcmake_cc_test(
+    NAME wip_test
+    MODULE utils
+    SOURCES wip_test.cc
+    DISABLED  # 标记为开发中测试（测试套件中跳过）
+    LINKS myproject::foo gtest gtest_main
+)
+
+# 可扩展测试（配合 kmcmake_cc_test_ext 实现参数化）
+kmcmake_cc_test(
+    NAME args_test
+    MODULE base
+    SOURCES args_test.cc
+    EXT  # 不自动执行，需通过 kmcmake_cc_test_ext 扩展
+    LINKS myproject::core gtest gtest_main
+)
+```
+
+## 2. `kmcmake_cc_test_ext`：扩展/参数化测试
+扩展已定义的 `kmcmake_cc_test`（需标记 `EXT` 标志），支持**参数化测试**、**自定义参数传递**或**结果验证**（通过
+正则匹配判定 pass/fail/skip）。适用于同一测试可执行文件需多组输入、或需验证特定输出模式的场景。
+
+### 语法
+```cmake
+kmcmake_cc_test_ext(
+    # 可选标志
+    DISABLED               # 禁用该扩展测试变体
+
+    # 必选参数
+    NAME <test_name>       # 基础测试名称（必须与 kmcmake_cc_test 的 NAME 一致）
+    MODULE <module_name>   # 基础测试的模块（必须与 kmcmake_cc_test 的 MODULE 一致）
+
+    # 可选配置
+    ALIAS <alias>          # 变体唯一别名（避免冲突）
+    ARGS <arg1> <arg2> ... # 传递给测试可执行文件的自定义参数
+    PASS_EXP <regex> ...   # 测试通过的正则模式（如 "Passed"）
+    FAIL_EXP <regex> ...   # 测试失败的正则模式（如 "ERROR"）
+    SKIP_EXP <regex> ...   # 测试跳过的正则模式（如 "SKIP"）
+)
+```
+
+### 关键细节
+- **测试目标命名**：生成唯一名称 `{MODULE}_{NAME}_{ALIAS}`（如 `base_args_test_fail`）；若未指定 `ALIAS`，则为 `{MODULE}_{NAME}`。
+- **结果验证机制**：通过 CMake 的 `FAIL_REGULAR_EXPRESSION`、`PASS_REGULAR_EXPRESSION`、`SKIP_REGULAR_EXPRESSION` 验证测试输出。
+- **参数化支持**：通过 `ARGS` 传递自定义参数，实现同一测试可执行文件多组输入（如 `ARGS "input1.txt" "output1.txt"`）。
+- **依赖关系**：必须存在对应的 `kmcmake_cc_test`（名称、模块一致且标记 `EXT` 标志）。
+
+### 示例用法
+```cmake
+# 第一步：定义基础可扩展测试（需设置 EXT 标志）
+kmcmake_cc_test(
+    NAME args_test
+    MODULE base
+    SOURCES args_test.cc  # 测试可读取命令行参数并输出结果
+    EXT  # 标记为可扩展
+    LINKS myproject::core gtest gtest_main
+)
+
+# 扩展变体 1：传递 "Failed" 参数（预期测试失败）
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS fail_args
+    ARGS "Failed"  # 传递参数给测试可执行文件
+    FAIL_EXP "[^a-z]Error;ERROR;Failed"  # 匹配失败的正则表达式
+)
+
+# 扩展变体 2：传递 "SKIP" 参数（预期测试跳过）
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS skip
+    ARGS "SKIP"
+    SKIP_EXP "[^a-z]Skip;SKIP;Skipped"  # 匹配跳过的正则表达式
+)
+
+# 扩展变体 3：传递 "Passed" 参数（预期测试通过）
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS pass
+    ARGS "Passed"
+    PASS_EXP "pass;Passed"  # 匹配通过的正则表达式
+)
+
+# 禁用的扩展变体（不执行）
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS disabled_variant
+    ARGS "Disabled"
+    PASS_EXP "pass"
+    DISABLED  # 跳过该变体
+)
+
+# 参数化测试：多组输入验证
+kmcmake_cc_test_ext(
+    NAME math_test
+    MODULE utils
+    ALIAS add_1_2
+    ARGS "add" "1" "2"  # 测试 1 + 2
+    PASS_EXP "Result: 3"
+)
+
+kmcmake_cc_test_ext(
+    NAME math_test
+    MODULE utils
+    ALIAS multiply_3_4
+    ARGS "multiply" "3" "4"  # 测试 3 * 4
+    PASS_EXP "Result: 12"
+)
+```
+
+## 3. `kmcmake_cc_test_library`：共享测试工具库
+构建可复用的测试工具库（静态/共享库），存放 Mock 类、辅助函数等通用测试逻辑，避免测试目标间代码重复。与 `kmcmake_cc_library` 
+语法对齐，但优化了测试专属场景（内部使用，不安装）。
+
+### 语法
+```cmake
+kmcmake_cc_test_library(
+    # 可选标志
+    SHARED                 # 构建共享库（默认：仅静态库）
+    EXCLUDE_SYSTEM         # 禁用包含目录的 "SYSTEM" 标志
+
+    # 可选标识符
+    NAME <lib_name>        # 测试库名称（未指定则从目录名推断）
+    NAMESPACE <ns>         # 库命名空间（默认：${PROJECT_NAME}）
+
+    # 库配置（与 kmcmake_cc_library 一致）
+    SOURCES <src1.cc> ...  # 工具源文件（如 mock_foo.cc）
+    OBJECTS <obj_targets> ... # 预构建对象目标
+    HEADERS <hdr1.h> ...   # 工具头文件（如 mock_foo.h）
+    INCLUDES <dir1> ...    # 公共包含目录（供测试目标使用）
+    PINCLUDES <dir1> ...   # 私有包含目录
+    DEFINES <DEF1> ...     # 预处理器宏
+    DEPS <dep_targets> ... # 构建依赖
+    LINKS <lib1> ...       # 公共链接库
+    PLINKS <lib1> ...      # 私有链接库
+    WLINKS <lib1> ...      # 全归档链接库
+    COPTS <c_flags> ...    # C 编译器标志
+    CXXOPTS <cxx_flags> ...# C++ 编译器标志
+    CUOPTS <cuda_flags> ...# CUDA 编译器标志
+)
+```
+
+### 关键细节
+- **库类型**：默认仅构建静态库；添加 `SHARED` 标志可同时构建静态库和共享库。
+- **命名规则**：生成别名 `{NAMESPACE}::{NAME}_static`（静态库）和 `{NAMESPACE}::{NAME}`（共享库，若启用）。
+- **内部使用限制**：不安装、不导出，仅可在项目测试目标中链接使用。
+- **可复用性**：测试目标通过 `LINKS` 链接该库（如 `myproject::test_utils_static`）。
+
+### 示例用法
+```cmake
+# 构建测试工具库（包含 Mock 类和辅助函数）
+kmcmake_cc_test_library(
+    NAME test_utils
+    NAMESPACE myproject
+    SOURCES
+        mock_foo.cc  # Foo 类的 Mock 实现
+        test_helpers.cc  # 测试辅助函数（如数据生成器）
+    HEADERS
+        mock_foo.h
+        test_helpers.h
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}  # 测试目标可包含工具头文件
+    LINKS
+        myproject::foo  # 链接被 Mock 的库
+        gtest           # 链接 Google Test（支持 Mock 功能）
+)
+
+# 在测试中使用测试工具库
+kmcmake_cc_test(
+    NAME foo_integration_test
+    MODULE integration
+    SOURCES foo_integration_test.cc
+    LINKS
+        myproject::foo
+        myproject::test_utils_static  # 链接测试工具库
+        gtest
+        gtest_main
+    INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}  # 访问 test_utils 头文件
+)
+```
+
+## 关键默认行为
+- **测试自动发现**：所有 `kmcmake_cc_test` 和 `kmcmake_cc_test_ext` 目标均注册到 CMake 测试框架，支持通过 `ctest` 或 IDE 测试运行器执行。
+- **编译器标志继承**：默认继承项目全局 `KMCMAKE_CXX_OPTIONS`（来自 `myproject_cxx_config.cmake`），可通过 `CXXOPTS`/`COPTS` 覆盖。
+- **包含路径自动配置**：所有测试宏自动添加项目源目录/二进制目录，无需手动配置项目头文件路径。
+- **测试隔离**：每个测试可执行文件独立构建，避免依赖冲突。
+- **模块化组织**：测试按 `MODULE` 分组命名（如 `utils_foo_test`、`base_args_test_fail`），支持通过 `ctest -R 模块名_*` 过滤
+    测试（如 `ctest -R utils_*` 仅运行 utils 模块测试）。
+
+## 测试执行流程
+使用 CMake 标准测试工作流，或通过 kmcmake 构建标志控制测试执行：
+
+### 1. 启用测试构建
+仅当 `KMCMAKE_BUILD_TEST` 为 `ON` 时才构建测试（通过 CMake 标志或 `CMakePresets.json` 设置）：
+```bash
+# 配置项目并启用测试
+cmake --preset default -DKMCMAKE_BUILD_TEST=ON
+```
+
+### 2. 构建测试
+```bash
+# 构建所有测试目标
+cmake --build build --target all
+
+# 构建指定测试目标
+cmake --build build --target base_args_test_fail_args
+```
+
+### 3. 运行测试
+```bash
+# 运行所有测试（需在构建目录执行）
+ctest
+
+# 运行指定模块的测试（如 "utils" 模块）
+ctest -R utils_*
+
+# 运行指定测试变体
+ctest -R base_args_test_fail_args
+
+# 详细输出模式运行测试
+ctest -V
+```
+
+### 4. 跳过整个模块测试
+通过 `{PROJECT_NAME}_SKIP_TEST` 列表添加模块名，跳过该模块所有测试：
+```cmake
+# 跳过 "wip" 模块的所有测试
+list(APPEND ${PROJECT_NAME}_SKIP_TEST wip)
+```
+
+## 关键最佳实践
+1. **用 `MODULE` 分组测试**：按功能模块（如 `utils`、`network`、`storage`）划分测试，简化过滤和调试。
+2. **复用测试工具库**：通过 `kmcmake_cc_test_library` 封装共享 Mock 类和辅助函数，避免测试代码重复。
+3. **参数化测试优先用 `kmcmake_cc_test_ext`**：相同测试逻辑多组输入时，通过 `ARGS` 传递参数，无需重复编写测试源文件。
+4. **用正则验证输出**：集成测试中通过 `PASS_EXP`/`FAIL_EXP`/`SKIP_EXP` 验证输出，确保测试结果符合预期。
+5. **禁用开发中测试**：用 `DISABLED` 标志标记未完成的测试，而非注释代码，保持测试套件整洁。
+6. **正确链接测试框架**：Google Test 需链接 `gtest_main` 避免自定义 `main()`；doctest/Catch2 可通过框架专属宏定义提供 `main()`。
+
+## 为何优于原生 CMake
+原生 CMake 需编写大量冗余模板代码配置测试，尤其参数化或模块化测试场景。例如，3 个变体的参数化测试在原生 CMake 中需：
+```cmake
+# 原生 CMake 等效代码（冗长且易出错）
+add_executable(base_args_test args_test.cc)
+target_link_libraries(base_args_test PRIVATE myproject::core gtest gtest_main)
+target_include_directories(base_args_test PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
+
+add_test(NAME base_args_test_fail_args COMMAND base_args_test "Failed")
+set_property(TEST base_args_test_fail_args PROPERTY FAIL_REGULAR_EXPRESSION "[^a-z]Error;ERROR;Failed")
+
+add_test(NAME base_args_test_skip COMMAND base_args_test "SKIP")
+set_property(TEST base_args_test_skip PROPERTY SKIP_REGULAR_EXPRESSION "[^a-z]Skip;SKIP;Skipped")
+
+add_test(NAME base_args_test_pass COMMAND base_args_test "Passed")
+set_property(TEST base_args_test_pass PROPERTY PASS_REGULAR_EXPRESSION "pass;Passed")
+```
+
+kmcmake 将上述代码浓缩为简洁的声明式配置，优势如下：
+- 测试按 `MODULE` 自动组织，过滤更便捷；
+- 共享测试逻辑封装为工具库，无代码冗余；
+- 与 kmcmake 核心工作流（编译器标志、依赖管理）无缝集成；
+- 减少人为错误，降低测试配置维护成本。
+
+## 最终说明
+- **框架无关性**：兼容任意 C++ 测试框架，不绑定 Google Test 或 doctest。
+- **可扩展性**：支持通过 `set_property(TEST ...)` 扩展原生 CMake 测试功能（如设置测试超时）。
+- **跨平台兼容性**：统一处理 Windows/Linux/macOS 的测试执行和输出验证。
+- **详细日志**：设置 `VERBOSE_KMCMAKE_BUILD=ON` 可查看测试配置细节（源文件、链接库、编译器标志）：
+  ```bash
+  cmake --preset default -DVERBOSE_KMCMAKE_BUILD=ON
+  ```
+
+kmcmake 测试宏套件提供了**可扩展、可维护的测试工作流**，随项目规模同步成长——从简单单元测试到复杂参数化/集成测试均能
+覆盖。通过减少模板代码和强制模块化组织，让开发者专注于编写有意义的测试用例，而非繁琐的 CMake 配置。

@@ -20,6 +20,7 @@
 function(kmcmake_cc_test)
     set(options
             DISABLED
+            SKIP
             EXT
             EXCLUDE_SYSTEM
     )
@@ -53,7 +54,7 @@ function(kmcmake_cc_test)
     kmcmake_raw("-----------------------------------")
 
     set(${KMCMAKE_CC_TEST_NAME}_INCLUDE_SYSTEM SYSTEM)
-    if (KMCMAKE_CC_LIB_EXCLUDE_SYSTEM)
+    if (KMCMAKE_CC_TEST_EXCLUDE_SYSTEM)
         set(${KMCMAKE_CC_TEST_NAME}_INCLUDE_SYSTEM "")
     endif ()
 
@@ -65,7 +66,12 @@ function(kmcmake_cc_test)
         kmcmake_print_list_label("Links" KMCMAKE_CC_TEST_LINKS)
         message("-----------------------------------")
     endif ()
+    set(KMCMAKE_BUILD_THIS_TEST ON)
     set(KMCMAKE_RUN_THIS_TEST ON)
+    if (KMCMAKE_CC_TEST_DISABLED)
+        set(KMCMAKE_BUILD_THIS_TEST OFF)
+        set(KMCMAKE_RUN_THIS_TEST OFF)
+    endif ()
     if (KMCMAKE_CC_TEST_SKIP)
         set(KMCMAKE_RUN_THIS_TEST OFF)
     endif ()
@@ -76,6 +82,10 @@ function(kmcmake_cc_test)
     set(testcase ${KMCMAKE_CC_TEST_MODULE}_${KMCMAKE_CC_TEST_NAME})
     if (${KMCMAKE_CC_TEST_MODULE} IN_LIST ${PROJECT_NAME}_SKIP_TEST)
         set(KMCMAKE_RUN_THIS_TEST OFF)
+    endif ()
+
+    if (NOT KMCMAKE_BUILD_THIS_TEST)
+        return()
     endif ()
 
     add_executable(${testcase} ${KMCMAKE_CC_TEST_SOURCES})

@@ -1,0 +1,190 @@
+# Manage Dependencies with kmcmake: Practical Third-Party Integration
+kmcmake streamlines dependency management through the centralized `KMCMAKE_DEPS_LINK` variable—unifying system libraries, third-party packages, and custom dependencies into a single configuration. Below is a **production-grade example** using `gflags` (a lightweight, easy-to-install command-line flag library) to demonstrate kmcmake’s standardized dependency workflow.
+
+We’ll strictly follow the pattern from your project template: `find_package()` → add to `KMCMAKE_DEPS_LINK` → use in kmcmake macros (no raw CMake `target_link_libraries`), ensuring consistency with real-world usage.
+
+## Prerequisite: Install the Third-Party Library (gflags)
+First, install `gflags` via system package managers (simple and widely supported):
+### Linux (Debian/Ubuntu)
+```bash
+sudo apt-get update && sudo apt-get install -y libgflags-dev
+```
+### macOS (Homebrew)
+```bash
+brew install gflags
+```
+### Windows (Chocolatey)
+```bash
+choco install gflags
+```
+
+## Step 1: Configure Dependencies in `cmake/myproject_deps.cmake`
+kmcmake’s generated `cmake/myproject_deps.cmake` is the dedicated file for managing external dependencies (the root `CMakeLists.txt` already includes this file by default—no extra configuration needed). Add the following to declare and link `gflags`:
+
+```cmake title="cmake/myproject_deps.cmake"
+# 1. Find gflags (CMake's built-in find module)
+# "REQUIRED" ensures build fails fast if gflags is not installed
+find_package(gflags REQUIRED)
+
+# 2. System library configuration (retained from kmcmake's default template)
+set(KMCMAKE_SYSTEM_DYLINK)
+if (APPLE)
+    find_library(CoreFoundation CoreFoundation)
+    list(APPEND KMCMAKE_SYSTEM_DYLINK ${CoreFoundation})
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(APPEND KMCMAKE_SYSTEM_DYLINK rt dl)
+endif ()
+find_package(Threads REQUIRED)
+list(APPEND KMCMAKE_SYSTEM_DYLINK Threads::Threads)
+
+# 3. Centralized dependency list: add gflags to KMCMAKE_DEPS_LINK
+# kmcmake macros (library/binary/interface) automatically use this variable via PLINKS
+set(KMCMAKE_DEPS_LINK
+        # Third-party library: gflags (official modern CMake target name)
+        gflags::gflags
+        # System libraries (from kmcmake's template, no manual modification needed)
+        ${KMCMAKE_SYSTEM_DYLINK}
+        # Add other third-party dependencies here (e.g., spdlog, ZLIB) following the same pattern
+        )
+
+# Remove duplicate dependencies (standard kmcmake practice to avoid linkage conflicts)
+list(REMOVE_DUPLICATES KMCMAKE_DEPS_LINK)
+
+# Print dependencies for verification (kmcmake utility: visible during cmake configure)
+kmcmake_print_list_label("Dependencies:" KMCMAKE_DEPS_LINK)
+```
+
+### Key Explanations (Aligned with Your Template)
+- `find_package(gflags REQUIRED)`: Uses CMake’s built-in module to locate `gflags`—fails early if the library is missing, avoiding vague linkage errors later.
+- `gflags::gflags`: Follows modern CMake target conventions (namespace-qualified) to ensure kmcmake correctly resolves both headers and library binaries.
+- `KMCMAKE_DEPS_LINK`: Centralized dependency "pool"—all kmcmake core macros (e.g., `kmcmake_cc_library`, `kmcmake_cc_binary`) automatically inherit this list via their `PLINKS` parameter, eliminating redundant `target_link_libraries` calls.
+- No extra includes: The root `CMakeLists.txt` already includes `cmake/myproject_deps.cmake` by default (part of kmcmake’s generated template), so your dependency config takes effect immediately.
+
+## Private Dependencies for Installed Config
+
+When a dependency is only needed by internal/private linkage but should still be resolved during `find_package(myproject)`, use the new helper functions in `myproject_deps.cmake`:
+
+- `kmcmake_private_find_package(...)`
+- `kmcmake_private_find_library(...)`
+
+These calls are recorded and automatically injected into the generated `myprojectConfig.cmake`, so you do not need to manually duplicate find logic in `myproject_config.cmake.in`.
+
+```cmake title="cmake/myproject_deps.cmake"
+# Recorded into generated myprojectConfig.cmake
+kmcmake_private_find_package(ZLIB REQUIRED)
+kmcmake_private_find_library(MY_CRYPTO_LIB NAMES crypto)
+```
+
+This keeps dependency declarations centralized in one place and avoids config-template drift.
+
+## Updated System Link Pattern
+
+In the latest template, thread linkage is target-based:
+
+```cmake
+find_package(Threads REQUIRED)
+list(APPEND KMCMAKE_SYSTEM_DYLINK Threads::Threads)
+```
+
+Prefer `Threads::Threads` over raw `pthread` for better cross-platform behavior.
+
+## Step 2: Use the Dependency in Core Code
+Update your `myproject/` code to use `gflags`—kmcmake automatically resolves header paths and linking, so you can use the library directly:
+
+### Modify `myproject/main.cc` to Add Command-Line Flags
+```cpp title="myproject/main.cc"
+#include "foo.h"
+#include "api.h"
+#include <gflags/gflags.h>  // gflags header (kmcmake resolves path via KMCMAKE_DEPS_LINK)
+#include <iostream>
+
+// Define gflags (command-line options: name, default value, description)
+DEFINE_string(name, "User", "Name for greeting");
+DEFINE_int32(age, 0, "Age (optional)");
+DEFINE_bool(verbose, false, "Enable verbose output");
+
+int main(int argc, char* argv[]) {
+    // Parse command-line flags (core gflags function)
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+    std::cout << "=== Running " << PROJECT_NAME << "_shared_main ===\n";
+
+    // Use gflags values in business logic
+    if (FLAGS_verbose) {
+        std::cout << "[Verbose] Flags parsed: Name=" << FLAGS_name << ", Age=" << FLAGS_age << "\n";
+    }
+
+    std::cout << "\nHello, " << FLAGS_name << "!\n";
+    myproject::foo();
+    myproject::api::print_version();
+
+    // Clean up gflags resources
+    gflags::ShutDownCommandLineFlags();
+    return 0;
+}
+```
+
+## Step 3: Build and Run the Project
+Use kmcmake’s standard build workflow—no extra steps for linking (kmcmake handles it via `KMCMAKE_DEPS_LINK`):
+
+### 1. Build from Project Root
+```bash
+cd myproject  # Stay in project root (kmcmake's recommended workflow)
+cmake --build build
+```
+
+### 2. Verify Dependencies Are Loaded
+During the build, you’ll see the `Dependencies:` list printed (via `kmcmake_print_list_label` in `myproject_deps.cmake`), confirming `gflags::gflags` is included:
+```
+Dependencies:
+- gflags::gflags
+- rt
+- dl
+- Threads::Threads
+```
+
+### 3. Run the Binary with Command-Line Flags
+Test the binary by passing the `gflags` options you defined:
+```bash
+# Linux/macOS
+./build/myproject/myproject_shared_main --name "Alice" --age 30 --verbose
+
+# Windows (Debug build example)
+build\myproject\Debug\myproject_shared_main.exe --name "Alice" --age 30 --verbose
+```
+
+### Expected Output
+```
+=== Running myproject_shared_main ===
+[Verbose] Flags parsed: Name=Alice, Age=30
+
+Hello, Alice!
+Hello from myproject::foo!
+myproject::api v1.0.0 (Header-only Interface)
+```
+
+## Step 4: Extend to More Dependencies (Reuse the Pattern)
+The same workflow applies to any modern CMake-compliant library (e.g., `spdlog`, `nlohmann_json`, `OpenSSL`). For example, to add `spdlog` (logging library):
+
+1. Install `spdlog` (e.g., `sudo apt-get install libspdlog-dev` on Linux).
+2. Update `cmake/myproject_deps.cmake`:
+   ```cmake
+   # Add find_package for the new library
+   find_package(spdlog REQUIRED)
+
+   # Append to KMCMAKE_DEPS_LINK
+   set(KMCMAKE_DEPS_LINK
+           gflags::gflags
+           spdlog::spdlog  # New dependency (follows namespace target convention)
+           ${KMCMAKE_SYSTEM_DYLINK}
+           )
+   ```
+3. Use `#include <spdlog/spdlog.h>` in your code—kmcmake resolves headers and linking automatically.
+
+## Key Takeaways (kmcmake Dependency Design Core)
+1. **Centralized & Maintainable**: All dependencies live in `cmake/myproject_deps.cmake`—no scattered config, easy to update.
+2. **Zero Boilerplate**: kmcmake macros inherit `KMCMAKE_DEPS_LINK` via `PLINKS`, no need for raw `target_link_libraries`.
+3. **Modern CMake-Native**: Uses official namespace targets (e.g., `gflags::gflags`) for cross-platform reliability.
+4. **Generated Template Alignment**: Follows the exact pattern of your project’s dependency configuration (system libs + third-party + deduplication + verification).
+
+This workflow scales seamlessly to complex projects (like your real-world use case with `brpc`, `faiss`, and `Arrow`)—keeping dependency management organized and consistent with kmcmake’s "convention over configuration" philosophy.

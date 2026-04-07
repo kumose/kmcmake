@@ -1,0 +1,76 @@
+# `kmcmake_cc_bm`: Define Benchmark Targets
+
+`kmcmake_cc_bm` is the benchmark helper macro in kmcmake. It creates an executable target and registers it to CTest, so benchmark cases can be built and run in a consistent way.
+
+This reference reflects the implementation in `template/kmcmake/tools/kmcmake_cc_benchmark.cmake`.
+
+## Syntax
+
+```cmake
+kmcmake_cc_bm(
+    [EXT]
+    NAME <benchmark_name>
+    MODULE <module_name>
+    SOURCES <file1.cc> [file2.cc ...]
+    [DEFINES <DEF1> <DEF2=VALUE> ...]
+    [INCLUDES <dir1> <dir2> ...]
+    [LINKS <target_or_lib1> <target_or_lib2> ...]
+    [DEPS <target1> <target2> ...]
+    [COPTS <c_flag1> ...]
+    [CXXOPTS <cxx_flag1> ...]
+    [CUOPTS <cuda_flag1> ...]
+    [COMMAND <program> <arg1> ...]
+)
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `NAME` | Yes | Benchmark case name. |
+| `MODULE` | Yes | Module prefix used to form test target name. |
+| `SOURCES` | Yes | Source files for the benchmark executable. |
+| `LINKS` | No | Libraries/targets linked to the benchmark executable. |
+| `DEPS` | No | Build dependencies added via `add_dependencies`. |
+| `DEFINES` | No | Compile definitions. |
+| `INCLUDES` | No | Additional include directories. |
+| `COPTS`/`CXXOPTS`/`CUOPTS` | No | Language-specific compile options. |
+| `COMMAND` | No | Custom test command. Default is the generated executable. |
+| `EXT` | No | Mark as external benchmark; benchmark is built but not added as a CTest case. |
+
+## Behavior
+
+- Target name is generated as `<MODULE>_<NAME>`.
+- The macro builds an executable with `add_executable`.
+- If `COMMAND` is omitted, the executable itself is used as the test command.
+- CTest registration is skipped when:
+  - `EXT` is enabled, or
+  - module exists in `${PROJECT_NAME}_SKIP_BENCHMARK`.
+
+## Example
+
+```cmake
+kmcmake_cc_bm(
+    NAME sort_benchmark
+    MODULE algo
+    SOURCES sort_benchmark.cc
+    LINKS benchmark::benchmark myproject::algo_static
+    CXXOPTS -O3
+)
+```
+
+This creates executable/test name `algo_sort_benchmark`.
+
+## Extended Test Wrapper
+
+`kmcmake_cc_bm_ext` can register extra test invocations for an existing benchmark command with custom args and pass/fail/skip regex.
+
+```cmake
+kmcmake_cc_bm_ext(
+    NAME sort_benchmark
+    MODULE algo
+    ALIAS small_input
+    ARGS --size=1000
+    PASS_EXP "Benchmark"
+)
+```

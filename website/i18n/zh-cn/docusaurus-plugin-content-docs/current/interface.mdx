@@ -1,0 +1,181 @@
+# 使用 `kmcmake_cc_interface` 构建接口库（仅头文件）
+kmcmake 提供 `kmcmake_cc_interface` 宏，专门用于**仅头文件库**——这是一种轻量级方案，无需编译源代码，即可封装公共 API、共享头文件或类型定义。它与 `kmcmake_cc_library` 的核心设计差异？**无 `SOURCES` 参数**——完全依赖头文件实现功能。
+
+## 什么是接口库？
+接口库（仅头文件）适用于以下场景：
+- 仅暴露声明的公共 API（`.cc` 文件中无实现）；
+- 多库/二进制文件共用的类型定义（如枚举、结构体）；
+- 基于内联函数实现的轻量级工具（无编译二进制文件）。
+
+与 `kmcmake_cc_library`（生成 `.so`/`.a` 文件）不同，`kmcmake_cc_interface` 仅管理头文件和编译选项——所有逻辑都在 `.h` 文件中，构建速度更快、共享更便捷。
+
+## 步骤 1：用 `kmcmake_cc_interface` 定义接口库
+在 `myproject/myproject/CMakeLists.txt` 中添加以下配置（以现有 `api` 接口为例）：
+
+```cmake title="myproject/myproject/CMakeLists.txt"
+# 接口库（仅头文件：无 SOURCES 参数）
+kmcmake_cc_interface(
+        NAMESPACE ${PROJECT_NAME}  # 命名空间前缀（例：myproject::api）
+        NAME api                   # 接口名称（标识头文件集合）
+        HEADERS                    # 必选：列出所有头文件（不允许 .cc/.cpp 文件）
+        api.h                      # 接口核心头文件
+        CXXOPTS                    # 该接口使用者所需的编译选项
+        ${KMCMAKE_CXX_OPTIONS}     # 复用 kmcmake 标准化选项（如 C++ 版本）
+        PUBLIC                     # 标记为公共：安装头文件 + 导出供外部使用
+)
+```
+
+### 核心参数解析（聚焦仅头文件设计）
+| 参数        | 用途（接口库专属）                                                                 |
+|-------------|----------------------------------------------------------------------------------|
+| `NAMESPACE` | 与其他 kmcmake 宏一致：添加命名空间前缀（如 `myproject::api`），避免命名冲突       |
+| `NAME`      | 接口唯一标识——用于依赖引用（如 `myproject::api`）                                 |
+| `HEADERS`   | **必选（且是功能唯一来源）**。列出所有 `.h`/`.hpp` 文件，不允许 `.cc` 文件（需编译代码请用 `kmcmake_cc_library`） |
+| `CXXOPTS`   | 使用该接口所需的编译选项（如头文件中现代语法需 `-std=c++17`），会自动传递给所有链接该接口的库/二进制文件 |
+| `PUBLIC`    | 标记接口可安装/导出：`cmake --install` 时头文件会复制到 `include/[NAMESPACE]/`，外部项目可通过 `find_package()` 链接 `myproject::api` |
+
+### 关键区别：`kmcmake_cc_interface` vs `kmcmake_cc_library`
+| 特性                | `kmcmake_cc_interface`（仅头文件） | `kmcmake_cc_library`（实体库）       |
+|---------------------|-----------------------------------|--------------------------------------|
+| 核心输入            | `HEADERS`（无 `.cc` 文件）         | `SOURCES`（`.cc` 文件）+ 可选 `HEADERS` |
+| 生成产物            | 无编译二进制（仅头文件）           | `.so`/`.a` 库文件（编译后代码）      |
+| 适用场景            | 公共 API、共享类型、内联逻辑       | 可复用编译逻辑（私有实现）           |
+| 依赖传递            | 向使用者继承 `CXXOPTS` 和头文件    | 通过 `PLINKS` 链接私有依赖           |
+
+## 步骤 2：在 `api.h` 中实现仅头文件逻辑
+由于无 `SOURCES` 参数，所有功能需在 `api.h` 中实现。确保头文件自包含（无外部 `.cc` 依赖），并使用内联函数编写实现：
+
+```cpp title="myproject/myproject/api.h"
+#ifndef MYPROJECT_API_H
+#define MYPROJECT_API_H
+
+#include <string>
+#include <iostream>
+
+// 命名空间与 NAMESPACE 参数一致（myproject::api）
+namespace myproject::api {
+    // 内联函数：实现放在头文件中（仅头文件库必需）
+    inline void print_version() {
+        std::cout << "myproject::api v1.0.0（仅头文件接口）\n";
+    }
+
+    // 共享类型定义（跨项目/库使用）
+    enum class LogLevel {
+        INFO,
+        WARN,
+        ERROR
+    };
+
+    // 内联工具函数
+    inline void log(LogLevel level, const std::string& message) {
+        switch (level) {
+            case LogLevel::INFO:  std::cout << "[INFO]  " << message << "\n"; break;
+            case LogLevel::WARN:  std::cout << "[WARN]  " << message << "\n"; break;
+            case LogLevel::ERROR: std::cerr << "[ERROR] " << message << "\n"; break;
+        }
+    }
+
+    // 公共 API 声明（若实现放在其他库中）
+    // 注：纯仅头文件场景直接用内联函数——本示例展示灵活性
+    std::string format_message(const std::string& prefix, const std::string& content);
+}  // namespace myproject::api
+
+#endif  // MYPROJECT_API_H
+```
+
+### 可选：链接实体库（如需）
+若接口声明了需实现的函数（如上述 `format_message`），可通过接口的 `DEPS` 或依赖库的配置，将接口链接到实体库。纯仅头文件场景可跳过——所有逻辑留在 `api.h` 中。
+
+## 步骤 3：在其他组件中使用接口库
+要在库或二进制文件中使用 `myproject::api`，可通过 `DEPS`（依赖）或 `LINKS`（链接）引用，与使用实体库完全一致。
+
+### 示例 1：在 `kmcmake_cc_library` 中使用
+```cmake
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME foo
+        SOURCES foo.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        DEPS ${PROJECT_NAME}::api  # 依赖接口库
+        PUBLIC
+)
+```
+
+更新 `foo.cc` 调用接口：
+```cpp title="myproject/myproject/foo.cc"
+#include "foo.h"
+#include "api.h"  // 来自 myproject::api 接口库
+
+namespace myproject {
+    void foo() {
+        std::cout << "=== myproject::foo（使用接口库）===\n";
+        
+        // 调用 api.h 中的内联函数
+        api::print_version();
+        
+        // 使用 api.h 中的枚举
+        api::log(api::LogLevel::INFO, "Foo 库初始化完成");
+        
+        // 调用接口声明的函数（实现在此处或其他库中）
+        std::string msg = api::format_message("Foo", "来自实体库的问候");
+        api::log(api::LogLevel::INFO, msg);
+    }
+
+    // 实现接口声明的函数（如需）
+    std::string api::format_message(const std::string& prefix, const std::string& content) {
+        return "[" + prefix + "] " + content;
+    }
+}  // namespace myproject
+```
+
+### 示例 2：在 `kmcmake_cc_binary` 中使用
+```cmake
+kmcmake_cc_binary(
+        NAMESPACE ${PROJECT_NAME}
+        NAME shared_main
+        SOURCES main.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        DEPS ${PROJECT_NAME}::api ${PROJECT_NAME}::foo  # 依赖接口库 + 实体库
+        LINKS ${KMCMAKE_DEPS_LINK} ${PROJECT_NAME}::foo
+        PUBLIC
+)
+```
+
+## 步骤 4：构建并验证接口库
+接口库无编译代码，构建速度极快——kmcmake 仅校验头文件并传递编译选项：
+
+```bash
+cd myproject  # 项目根目录
+cmake --build build  # 接口库无需额外步骤
+```
+
+### 安装并查看接口库
+安装项目，验证接口头文件是否正确安装（归功于 `PUBLIC` 关键字）：
+```bash
+cmake --install build --prefix build/installed
+```
+
+查看 `include/` 目录，接口头文件会按命名空间存放：
+```bash
+ls -l myproject/build/installed/include/myproject/
+# 输出：api.h（来自 kmcmake_cc_interface） + foo.h（来自 kmcmake_cc_library）
+```
+
+### 关键结论
+- 接口库不会生成编译二进制文件（如 `libmyproject_api.so`），仅安装 `api.h` 头文件；
+- 所有链接 `myproject::api` 的库/二进制文件，会自动获取 `api.h` 访问权限和接口的 `CXXOPTS`（如 C++ 版本）。
+
+## 步骤 5：接口库最佳实践
+1. **头文件自包含**：使用包含守卫（如 `#ifndef MYPROJECT_API_H`），避免引用接口外的相对路径；
+2. **内联函数实现逻辑**：纯仅头文件场景，函数需加 `inline` 关键字，避免链接错误（多重定义）；
+3. **利用 `NAMESPACE`**：头文件会安装到 `include/[NAMESPACE]/`，避免与其他项目冲突；
+4. **内部接口省略 `PUBLIC`**：若头文件仅项目内使用（不对外共享），移除 `PUBLIC` 关键字——头文件不会被安装。
+
+## 核心总结
+- `kmcmake_cc_interface` 专为**仅头文件库**设计——无 `SOURCES` 参数，所有逻辑在 `HEADERS` 中；
+- 核心价值：封装共享头文件和编译选项，便于项目内 API 复用；
+- 集成性：通过 `DEPS` 引用 `myproject::api`，可无缝对接 `kmcmake_cc_library` 和 `kmcmake_cc_binary`；
+- 轻量高效：无编译产物，构建速度快，适合公共 API 或共享类型场景。
+
+接下来，我们将探讨如何组织多个接口库，或链接外部仅头文件依赖。

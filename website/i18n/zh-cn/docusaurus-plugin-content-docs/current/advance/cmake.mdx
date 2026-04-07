@@ -1,0 +1,245 @@
+# kmcmake 生成的根目录 `CMakeLists.txt`：项目构建流程与结构
+根目录 `CMakeLists.txt`（由 kmcmake 自动生成）是项目构建过程的**中央控制枢纽**。它遵循严格的「阶段化工作流」，既贴合 CMake 原生逻辑，又封装了 kmcmake「约定优于配置」的设计理念。每个章节都有明确用途——从项目初始化到目标导出供外部使用——几乎无需手动修改。
+
+## 核心工作流：5 个关键阶段
+文件按顺序划分为多个阶段，确保依赖解析、配置应用和构建执行按正确顺序进行。以下是每个阶段的详细解析，与生成代码直接对应。
+
+---
+
+### 阶段 1：项目初始化与元数据配置
+**目标**：设置 CMake 项目基础配置、版本控制和顶层标志。  
+该阶段优先执行，确立项目核心属性（纯 CMake 逻辑，无 kmcmake 专属内容）。
+
+```cmake
+# 阶段 1：项目初始化
+cmake_minimum_required(VERSION 3.24)  # kmcmake 最低要求的 CMake 版本
+project(myproject CXX)                # 项目名称 + 开发语言（仅 C++）
+
+# 标志：标记当前是否为顶层项目（而非作为依赖被其他项目引入）
+option(${PROJECT_NAME}_IS_TOP_PROJECT "myproject 是否为顶层项目" ON)
+get_property(not_top DIRECTORY PROPERTY PARENT_DIRECTORY)
+if (not_top)
+    set(${PROJECT_NAME}_IS_TOP_PROJECT OFF)
+endif ()
+
+# 项目元数据（语义化版本 + 描述）
+set(PROJECT_DESCRIPTION "Hercules 是针对 Python 语言子集的 AOT 编译器框架。")
+set(PROJECT_VERSION_MAJOR 0)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 5)
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+
+# 导出版本元数据为项目专属变量（供外部使用）
+set(${PROJECT_NAME}_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(${PROJECT_NAME}_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(${PROJECT_NAME}_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(${PROJECT_NAME}_VERSION ${PROJECT_VERSION})
+
+# 项目名称大写（用于 version.h.in 中的宏定义）
+string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UP)
+
+# 标志：启用 Python 扩展构建（默认关闭）
+option(PYTHON_EXTENSION "构建为 Python 共享库" OFF)
+
+# kmcmake 框架版本（用于兼容性检查）
+set(KMCMAKE_VERSION 0.6.0)
+```
+
+**核心说明**：
+- `PROJECT_NAME` 和版本变量在 kmcmake 中全局统一使用（如 `version.h.in`、`myproject_config.cmake.in`）。
+- `${PROJECT_NAME}_IS_TOP_PROJECT` 确保项目作为其他 CMake 项目的依赖时，仍能正常工作。
+
+---
+
+### 阶段 2：kmcmake 框架集成
+**目标**：导入 kmcmake 核心模块和工具——启用 kmcmake 宏（如 `kmcmake_cc_library`）和实用程序。  
+该阶段将项目与 kmcmake 框架关联，无需修改 kmcmake 源码。
+
+```cmake
+# 阶段 2：kmcmake 框架集成
+# 将 kmcmake 核心模块路径添加到 CMake 模块搜索列表
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/kmcmake)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/kmcmake/tools)
+
+# 将项目自定义 cmake/ 目录添加到模块路径（用于用户配置）
+list(APPEND CMAKE_MODULE_PATH ${${PROJECT_NAME}_SOURCE_DIR}/cmake)
+
+# 引入 kmcmake 核心模块（初始化宏、工具和默认设置）
+include(kmcmake_module)
+```
+
+**核心说明**：
+- `CMAKE_MODULE_PATH` 告诉 CMake 去哪里查找 kmcmake 宏（如 `kmcmake_cc_library.cmake`）和自定义配置（如 `myproject_deps.cmake`）。
+- `include(kmcmake_module)` 是必需步骤——激活 kmcmake 核心功能（无需手动配置）。
+
+---
+
+### 阶段 3：用户自定义配置导入
+**目标**：从 `cmake/` 目录加载项目专属设置（依赖、C++ 标志、测试配置）。  
+该阶段用于注入项目特有逻辑——kmcmake 已生成占位符供自定义扩展。
+
+```cmake
+# 阶段 3：用户自定义配置
+##################################################################
+# 你的 cmake 目录（${PROJECT_SOURCE_DIR}/cmake）——在此添加自定义逻辑
+#################################################################
+
+include(myproject_deps)        # 加载外部依赖（如 gflags、spdlog）
+include(myproject_cxx_config)  # 加载 C++ 编译标志（预设 + 自定义调整）
+include(myproject_test)        # 加载测试配置（如 Google Test 配置）
+
+# 从模板生成 version.h（使用阶段 1 的元数据）
+string(TOUPPER ${CMAKE_BUILD_TYPE} UPPERCASE_BUILD_TYPE)
+configure_file(
+    ${PROJECT_SOURCE_DIR}/myproject/version.h.in  # 输入模板
+    ${PROJECT_SOURCE_DIR}/myproject/version.h      # 输出生成文件
+    @ONLY                                          # 仅替换 @占位符@ 变量
+)
+```
+
+**核心说明**：
+- 三个 `include()` 语句加载 `cmake/` 目录下的自定义配置（前文已详细介绍）。
+- `configure_file()` 生成 `version.h`（元数据桥梁），融合阶段 1 的变量（如 `PROJECT_VERSION`）和构建上下文（如 `CMAKE_BUILD_TYPE`）。
+
+---
+
+### 阶段 4：构建执行（核心逻辑）
+**目标**：触发核心代码、测试、基准测试和示例的构建——由 kmcmake 标志控制。  
+该阶段执行实际构建逻辑，通过 kmcmake 标志控制哪些组件被构建。
+
+```cmake
+# 阶段 4：构建执行
+# 构建核心业务逻辑（myproject/ 目录：通过 kmcmake 宏定义库/二进制文件）
+add_subdirectory(myproject)
+
+####################################################################
+# 自动生成的构建规则 —— 谨慎修改
+####################################################################
+# 构建测试（若 KMCMAKE_BUILD_TEST 已启用）
+if (KMCMAKE_BUILD_TEST)
+    add_subdirectory(tests)
+endif ()
+
+# 构建基准测试（若 KMCMAKE_BUILD_BENCHMARK 已启用）
+if (KMCMAKE_BUILD_BENCHMARK)
+    add_subdirectory(benchmark)
+endif ()
+
+# 构建示例（若 KMCMAKE_BUILD_EXAMPLES 已启用）
+if (KMCMAKE_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif ()
+```
+
+**核心说明**：
+- `add_subdirectory(myproject)` 是必需步骤——处理 `myproject/CMakeLists.txt`，解析其中通过 kmcmake 宏定义的库/二进制文件。
+- 条件编译标志（如 `KMCMAKE_BUILD_TEST`）由 kmcmake 提供，可通过命令行启用（如 `cmake -DKMCMAKE_BUILD_TEST=ON ..`）。
+
+---
+
+### 阶段 5：目标导出与打包（仅顶层项目）
+**目标**：导出项目目标、头文件和配置文件供外部使用——仅当项目为顶层项目且非 Python 扩展时执行。  
+该阶段让项目可被其他 CMake 项目复用（通过 `find_package()`）。
+
+```cmake
+# 阶段 5：目标导出与打包（构建 Python 扩展时跳过）
+if(NOT PYTHON_EXTENSION)
+    ##############################################
+    # 将头文件安装到标准 include 目录
+    #############################################
+    install(DIRECTORY ${PROJECT_NAME}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            FILES_MATCHING
+            PATTERN "*.inc"
+            PATTERN "*.h"
+            PATTERN "*.hpp"
+            )
+
+    # 配置导出路径（符合 CMake 标准布局）
+    set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+    set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+    set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+    set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+    set(namespace "${PROJECT_NAME}::")
+
+    # 生成 ConfigVersion.cmake（支持版本约束）
+    include(CMakePackageConfigHelpers)
+    write_basic_package_version_file(
+            "${version_config}" COMPATIBILITY SameMajorVersion
+    )
+
+    # 从模板生成 Config.cmake（使用 myproject_config.cmake.in）
+    configure_package_config_file(
+            "cmake/myproject_config.cmake.in"
+            "${project_config}"
+            INSTALL_DESTINATION "${config_install_dir}"
+    )
+
+    # 安装导出文件（供 find_package() 使用）
+    install(
+            FILES "${project_config}" "${version_config}"
+            DESTINATION "${config_install_dir}"
+    )
+    install(
+            EXPORT "${TARGETS_EXPORT_NAME}"
+            NAMESPACE "${namespace}"
+            DESTINATION "${config_install_dir}"
+    )
+
+    # 生成并安装 pkg-config 文件（供非 CMake 项目使用）
+    configure_file(
+            ${PROJECT_SOURCE_DIR}/kmcmake/package/pkg_dump_template.pc.in
+            ${PROJECT_BINARY_DIR}/package/${PROJECT_NAME}.pc
+    )
+    install(
+            FILES ${PROJECT_BINARY_DIR}/package/${PROJECT_NAME}.pc
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+    )
+
+    # 取消注释以启用 CPack（RPM/DEB/归档包打包）
+    # include(myproject_cpack_config)
+endif()
+
+# kmcmake 构建完成提示
+kmcmake_print("myproject cmake 构建系统由 kmcmake 包管理工具创建")
+kmcmake_print("kmcmake: https://github.com/kumose/kmcmake")
+kmcmake_print("工具: https://github.com/kumose/kmdo")
+kmcmake_print("文档: https://pub.kumose.cc/kmdo")
+```
+
+**核心说明**：
+- **头文件安装**：将项目头文件（`.h`/`.hpp`/`.inc`）复制到系统标准 include 目录（如 `/usr/local/include`）。
+- **CMake 导出**：生成 `myprojectConfig.cmake`、`myprojectConfigVersion.cmake` 和 `myprojectTargets.cmake`——外部项目可通过 `find_package(myproject)` 引用。
+- **pkg-config 支持**：生成 `.pc` 文件，供非 CMake 项目（如使用 `make`/`autotools` 的项目）使用。
+- **CPack 集成**：取消注释 `include(myproject_cpack_config)` 即可启用跨平台打包（RPM/DEB/ZIP）。
+
+---
+
+## 根目录 `CMakeLists.txt` 关键最佳实践
+1. **尽量避免手动修改**：  
+   该文件大部分内容由 kmcmake 生成——仅修改标记 `# Your cmake directory ...` 的阶段 3，或取消可选功能注释（如 CPack）。修改其他阶段可能破坏 kmcmake 兼容性。
+
+2. **使用 kmcmake 标志控制条件构建**：  
+   通过 kmcmake 内置标志控制测试/基准测试/示例的构建（可通过命令行或 `CMakePresets.json` 设置）：
+   ```bash
+   # 启用测试和示例
+   cmake -DKMCMAKE_BUILD_TEST=ON -DKMCMAKE_BUILD_EXAMPLES=ON ..
+   ```
+
+3. **保留标准目录布局**：  
+   kmcmake 遵循 CMake 标准安装布局（如配置文件存于 `lib/cmake/${PROJECT_NAME}`，头文件存于 `include/`）。请勿修改这些路径——确保与外部项目兼容。
+
+4. **版本一致性维护**：  
+   版本号需在 `PROJECT_VERSION_MAJOR`/`MINOR`/`PATCH` 中统一更新——该值会同步到 `version.h`、`myproject_config.cmake` 和 pkg-config 文件。
+
+---
+
+## 核心设计理念
+根目录 `CMakeLists.txt` 集中体现了 kmcmake 的核心原则：
+- **阶段化顺序**：确保构建前解析依赖、构建后执行导出——避免「先有鸡还是先有蛋」的依赖错误。
+- **关注点分离**：用户自定义逻辑（阶段 3）与框架集成（阶段 2）、导出逻辑（阶段 5）隔离——易于维护。
+- **标准兼容性**：遵循 CMake 原生约定（如 `write_basic_package_version_file`、`install(EXPORT)`），确保项目能融入现有 CMake 生态。
+- **零冗余模板**：kmcmake 生成所有重复逻辑（如导出路径配置、pkg-config 搭建）——你只需专注核心代码。
+
+该文件是 kmcmake 项目的「骨架」——连接代码与 kmcmake 框架、处理配置、支持复用。无需过多手动干预，即可提供生产级构建系统，从小型库到大型多组件项目均能适配。

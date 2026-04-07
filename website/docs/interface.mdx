@@ -1,0 +1,186 @@
+---
+sidebar_position: 4
+---
+
+# Use Interface Libraries (Header-Only) with `kmcmake_cc_interface`
+
+kmcmake provides the `kmcmake_cc_interface` macro specifically for **header-only libraries**—a lightweight way to encapsulate public APIs, shared headers, or type definitions without compiled source code. The core design difference from `kmcmake_cc_library`? **No `SOURCES` parameter**—it relies entirely on header files for functionality.
+
+## What is an Interface Library?
+An interface library (header-only) is ideal for:
+- Public APIs that only expose declarations (no implementation in `.cc` files).
+- Shared type definitions (e.g., enums, structs) used across multiple libraries/binaries.
+- Lightweight utilities implemented with inline functions (no compiled binary).
+
+Unlike `kmcmake_cc_library` (which generates a `.so`/`.a` file), `kmcmake_cc_interface` only manages headers and compile options—all logic lives in `.h` files, making it fast to build and easy to share.
+
+## Step 1: Define an Interface Library with `kmcmake_cc_interface`
+Add the following configuration to `myproject/myproject/CMakeLists.txt` (we’ll reuse your existing `api` interface as an example):
+
+```cmake title="myproject/myproject/CMakeLists.txt"
+# Interface library (header-only: no SOURCES parameter)
+kmcmake_cc_interface(
+        NAMESPACE ${PROJECT_NAME}  # Namespace prefix (e.g., myproject::api)
+        NAME api                   # Interface name (identifies the header set)
+        HEADERS                    # REQUIRED: List of header files (no .cc/.cpp allowed)
+        api.h                      # Core header for the interface
+        CXXOPTS                    # Compile flags for users of this interface
+        ${KMCMAKE_CXX_OPTIONS}     # Reuse kmcmake's standardized flags (e.g., C++ version)
+        PUBLIC                     # Mark as public: install headers + export for external use
+)
+```
+
+### Core Parameter Breakdown (Focus on Header-Only Design)
+| Parameter   | Purpose (Exclusive to Interface Libraries)                                                               |
+|-------------|----------------------------------------------------------------------------------------------------------|
+| `NAMESPACE` | Same as other kmcmake macros: Adds a namespace prefix (e.g., `myproject::api`) to avoid naming conflicts. |
+| `NAME`      | Unique identifier for the interface—used to reference it in dependencies (e.g., `myproject::api`).       |
+| `HEADERS`   | **Required (and only source of functionality)**. Lists all `.h`/`.hpp` files for the interface. No `.cc` files allowed (use `kmcmake_cc_library` if you need compiled code). |
+| `CXXOPTS`   | Compile flags required to use the interface (e.g., `-std=c++17` for modern syntax in headers). Passed automatically to any library/binary that links this interface. |
+| `PUBLIC`    | Marks the interface as installable/exportable: Headers are copied to `include/[NAMESPACE]/` during `cmake --install`, and external projects can link to `myproject::api` via `find_package()`. |
+
+### Critical Distinction: `kmcmake_cc_interface` vs `kmcmake_cc_library`
+| Feature                | `kmcmake_cc_interface` (Header-Only) | `kmcmake_cc_library` (Concrete Library) |
+|------------------------|---------------------------------------|-----------------------------------------|
+| Core Input             | `HEADERS` (no `.cc` files)            | `SOURCES` (`.cc` files) + optional `HEADERS` |
+| Generated Artifact     | No compiled binary (header-only)      | `.so`/`.a` library file (compiled code) |
+| Use Case               | Public APIs, shared types, inline logic | Reusable compiled logic (private implementation) |
+| Dependencies           | Inherits `CXXOPTS` and headers to users | Links private dependencies via `PLINKS` |
+
+## Step 2: Implement the Header-Only Logic in `api.h`
+Since there’s no `SOURCES` parameter, all functionality lives in `api.h`. Ensure the header is self-contained (no external `.cc` dependencies) and uses inline functions for implementation:
+
+```cpp title="myproject/myproject/api.h"
+#ifndef MYPROJECT_API_H
+#define MYPROJECT_API_H
+
+#include <string>
+#include <iostream>
+
+// Namespace matches NAMESPACE parameter (myproject::api)
+namespace myproject::api {
+    // Inline function: Implementation lives in header (required for header-only)
+    inline void print_version() {
+        std::cout << "myproject::api v1.0.0 (Header-Only Interface)\n";
+    }
+
+    // Shared type definition (used across projects/libraries)
+    enum class LogLevel {
+        INFO,
+        WARN,
+        ERROR
+    };
+
+    // Inline utility function
+    inline void log(LogLevel level, const std::string& message) {
+        switch (level) {
+            case LogLevel::INFO:  std::cout << "[INFO]  " << message << "\n"; break;
+            case LogLevel::WARN:  std::cout << "[WARN]  " << message << "\n"; break;
+            case LogLevel::ERROR: std::cerr << "[ERROR] " << message << "\n"; break;
+        }
+    }
+
+    // Public API declaration (if implementation is in another library)
+    // Note: For pure header-only, use inline—this example shows flexibility
+    std::string format_message(const std::string& prefix, const std::string& content);
+}  // namespace myproject::api
+
+#endif  // MYPROJECT_API_H
+```
+
+### Optional: Link to a Concrete Library (If Needed)
+If your interface declares functions that require implementation (e.g., `format_message` above), link the interface to a concrete library (via `DEPS` in the interface or the dependent library). For pure header-only use cases, skip this—all logic stays in `api.h`.
+
+## Step 3: Use the Interface Library in Other Components
+To use `myproject::api` in a library or binary, reference it via `DEPS` (for dependencies) or `LINKS` (for linking)—just like you would with a concrete library.
+
+### Example 1: Use in `kmcmake_cc_library`
+```cmake
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME foo
+        SOURCES foo.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        DEPS ${PROJECT_NAME}::api  # Depend on the interface
+        PUBLIC
+)
+```
+
+Update `foo.cc` to use the interface:
+```cpp title="myproject/myproject/foo.cc"
+#include "foo.h"
+#include "api.h"  // From myproject::api interface
+
+namespace myproject {
+    void foo() {
+        std::cout << "=== myproject::foo (Using Interface Library) ===\n";
+        
+        // Use inline function from api.h
+        api::print_version();
+        
+        // Use enum from api.h
+        api::log(api::LogLevel::INFO, "Foo library initialized");
+        
+        // Use declared function (implemented here or in another library)
+        std::string msg = api::format_message("Foo", "Hello from concrete library");
+        api::log(api::LogLevel::INFO, msg);
+    }
+
+    // Implement the interface's declared function (if needed)
+    std::string api::format_message(const std::string& prefix, const std::string& content) {
+        return "[" + prefix + "] " + content;
+    }
+}  // namespace myproject
+```
+
+### Example 2: Use in `kmcmake_cc_binary`
+```cmake
+kmcmake_cc_binary(
+        NAMESPACE ${PROJECT_NAME}
+        NAME shared_main
+        SOURCES main.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        DEPS ${PROJECT_NAME}::api ${PROJECT_NAME}::foo  # Depend on interface + library
+        LINKS ${KMCMAKE_DEPS_LINK} ${PROJECT_NAME}::foo
+        PUBLIC
+)
+```
+
+## Step 4: Build and Verify the Interface Library
+Since interface libraries have no compiled code, building is fast—kmcmake only validates headers and propagates compile options:
+
+```bash
+cd myproject  # Project root
+cmake --build build  # No extra steps for interface libraries
+```
+
+### Install and Inspect the Interface
+Install the project to confirm the interface’s headers are installed (thanks to the `PUBLIC` keyword):
+```bash
+cmake --install build --prefix build/installed
+```
+
+Check the `include/` directory—you’ll find the interface’s header under the namespace:
+```bash
+ls -l myproject/build/installed/include/myproject/
+# Output: api.h (from kmcmake_cc_interface) + foo.h (from kmcmake_cc_library)
+```
+
+### Key Observation
+- No compiled binary (e.g., `libmyproject_api.so`) is generated for the interface—only the `api.h` header is installed.
+- Any library/binary linking `myproject::api` automatically gets access to `api.h` and the `CXXOPTS` (e.g., C++ version) from the interface.
+
+## Step 5: Best Practices for Interface Libraries
+1. **Keep headers self-contained**: Use include guards (e.g., `#ifndef MYPROJECT_API_H`) and avoid relative includes outside the interface.
+2. **Use inline functions for implementation**: For pure header-only logic, mark functions as `inline` to avoid linker errors (multiple definitions).
+3. **Leverage `NAMESPACE`**: Ensures headers are installed to `include/[NAMESPACE]/`, preventing conflicts with other projects.
+4. **Omit `PUBLIC` for internal-only interfaces**: If the header set is only used within your project (not shared externally), remove the `PUBLIC` keyword—headers won’t be installed.
+
+## Key Takeaways
+- `kmcmake_cc_interface` is purpose-built for **header-only libraries**—no `SOURCES` parameter (all logic in `HEADERS`).
+- Core value: Encapsulates shared headers and compile options, making it easy to reuse APIs across your project.
+- Integration: References like `myproject::api` work seamlessly with `kmcmake_cc_library` and `kmcmake_cc_binary` via `DEPS`.
+- Lightweight: No compiled artifacts—fast to build and ideal for public APIs or shared types.
+
+Next, we’ll explore how to organize multiple interface libraries or link external header-only dependencies.

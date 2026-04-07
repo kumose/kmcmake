@@ -1,0 +1,234 @@
+---
+sidebar_position: 2
+---
+
+# Configure Your First Library
+
+Let’s dive into **configuring a custom C++ library** with kmcmake. We’ll use the `myproject` generated earlier—either extend the existing `foo` library or create a brand-new one—and run all commands from the project root directory. Finally, we’ll inspect the installed artifacts to visualize how configuration changes affect the output.
+
+## Step 1: Locate the Core CMake Script
+
+First, open the CMake configuration file for your project (path kept clear for subsequent operations):  
+`myproject/myproject/CMakeLists.txt`  
+
+You’ll find the pre-defined `foo` library (added by the template) around line 20. This is kmcmake’s core macro for building libraries:
+
+```cmake title="myproject/myproject/CMakeLists.txt"
+20 kmcmake_cc_library(
+21         NAMESPACE ${PROJECT_NAME}  # Namespace for the library (avoids naming conflicts)
+22         NAME foo                   # Library name (final artifact: libmyproject_foo.so/.a)
+23         SOURCES                    # List of source files for the library
+24         foo.cc
+25         CXXOPTS                    # C++ compile flags (reuses kmcmake's standardized config)
+26         ${KMCMAKE_CXX_OPTIONS}
+27         PLINKS                     # Private dependencies (used only internally by this library)
+28         ${KMCMAKE_DEPS_LINK}
+29         PUBLIC                     # Mark as public: installed and exported (for use by other projects)
+30 )
+```
+
+## Step 2: Understand Key Parameters (Quick Reference)
+| Parameter   | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| `NAMESPACE` | Prefix for the library (e.g., `myproject::foo` instead of just `foo`), avoids naming conflicts with other libraries. Typically set to `${PROJECT_NAME}` (project name defined in the top-level CMakeLists.txt). |
+| `NAME`      | Core name of the library. Naming convention for final artifacts: `lib[Namespace]_[Name].so` (Linux) or `[Namespace]_[Name].lib` (Windows). |
+| `SOURCES`   | List of `.cc`/`.cpp` source files for the library. Add new files here to extend functionality. |
+| `CXXOPTS`   | C++ compile flags (e.g., `-std=c++17`, `-O2`). Reusing `${KMCMAKE_CXX_OPTIONS}` ensures consistency with kmcmake’s standardized configuration. |
+| `PLINKS`    | Private dependencies: Libraries used only internally by this library (not exposed to users of your library). Use `PUBLIC_LINKS` for dependencies that need to be exposed (see Step 4). |
+| `PUBLIC`    | Marks the library as public: it will be installed to the target directory and exported (so other projects can link to it via `find_package(kmcmake)`). Omit this keyword if the library is for internal use only (not shared outside your project). |
+
+## Step 3: Extend the Existing `foo` Library
+Let’s add custom logic to the pre-built `foo` library (simple and fast):
+
+### 1. Create a new source file
+In `myproject/myproject/`, create `bar.cc` with your custom logic (e.g., a simple function):
+```cpp title="myproject/myproject/bar.cc"
+#include "foo.h"  // Reuse existing header (or create bar.h for new APIs)
+#include <iostream>
+
+namespace myproject {  // Matches the NAMESPACE parameter
+void bar() {
+    std::cout << "Hello from bar()! This is your custom library logic.\n";
+    foo();  // Call the existing function from foo.cc
+}
+}  // namespace myproject
+```
+
+### 2. Update `CMakeLists.txt` to include the new file
+Add `bar.cc` to the `SOURCES` list of the `foo` library:
+```cmake title="myproject/myproject/CMakeLists.txt"
+20 kmcmake_cc_library(
+21         NAMESPACE ${PROJECT_NAME}
+22         NAME foo
+23         SOURCES
+24         foo.cc bar.cc  # Add your new source file here
+25         CXXOPTS
+26         ${KMCMAKE_CXX_OPTIONS}
+27         PLINKS
+28         ${KMCMAKE_DEPS_LINK}
+29         PUBLIC
+30 )
+```
+
+### 3. Build from the project root directory
+Run the build command **in the `myproject` root directory** (not the `build` folder):
+```bash
+cd myproject  # Ensure you're in the project root
+cmake --build build  # Build directly from root (uses existing build directory)
+```
+
+## Step 4: (Optional) Create a Brand-New Library
+To split code into separate libraries (e.g., `foo` for core logic, `utils` for helpers), add a new `kmcmake_cc_library` block **after** the existing one:
+
+### 1. Add the new library configuration
+```cmake title="myproject/myproject/CMakeLists.txt"
+# Existing foo library (keep it)
+kmcmake_cc_library(...)
+
+# New library: "utils" (for helper functions)
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME utils  # New library name
+        SOURCES
+        utils.cc    # Create this file next
+        CXXOPTS
+        ${KMCMAKE_CXX_OPTIONS}
+        PLINKS
+        ${KMCMAKE_DEPS_LINK}
+        # Omit "PUBLIC" for internal-only libraries
+)
+```
+
+### 2. Create `utils.cc` and link dependencies (if needed)
+If `foo` needs to use `utils`, add `utils` to `foo`’s `PLINKS` (private dependency):
+```cpp title="myproject/myproject/utils.cc"
+#include "utils.h"
+#include <string>
+
+namespace myproject {
+std::string format_message(const std::string& msg) {
+    return "[Utils] " + msg;
+}
+}  // namespace myproject
+```
+
+Update `foo`’s CMake config to link `utils`:
+```cmake title="myproject/myproject/CMakeLists.txt"
+20 kmcmake_cc_library(
+21         NAMESPACE ${PROJECT_NAME}
+22         NAME foo
+23         SOURCES
+24         foo.cc bar.cc
+25         CXXOPTS
+26         ${KMCMAKE_CXX_OPTIONS}
+27         PLINKS
+28         ${KMCMAKE_DEPS_LINK}
+29         ${PROJECT_NAME}::utils  # Link the new "utils" library (private)
+30         PUBLIC
+31 )
+```
+
+### 3. Rebuild from the project root
+```bash
+cd myproject  # Project root directory
+cmake --build build  # Rebuild with the new library
+```
+
+## Step 5: Install and Inspect the Artifacts
+Now install the built libraries and headers to a local directory, then observe how your configuration changes are reflected in the installed files.
+
+### 1. Run the install command (from project root)
+Install the build artifacts to `build/installed` (custom install directory):
+```bash
+cd myproject  # Ensure you're in the project root
+cmake --install build --prefix build/installed  # Install to build/installed
+```
+
+### 2. Inspect the installed files
+Navigate to the `build/installed` directory and examine the structure:
+```bash
+# Navigate to the installed directory
+cd myproject/build/installed
+
+# List the directory structure
+ls -l  # You'll see "include/" and "lib/" folders
+```
+
+#### Key files to check:
+- **`include/myproject/`**: Contains header files (e.g., `foo.h`, `bar.h`, `utils.h`). These are exported because the library is marked `PUBLIC`.
+- **`lib/`**: Contains the compiled library binaries:
+  - `libmyproject_foo.so` (Linux) / `myproject_foo.lib` (Windows) (extended with `bar.cc` logic)
+  - `libmyproject_utils.so` (Linux) / `myproject_utils.lib` (Windows) (newly created library, if you completed Step 4)
+
+### 3. What to observe:
+- Adding `bar.cc` to `SOURCES` adds its logic to `libmyproject_foo.so` (verified by the library size or linking it in a test).
+- The `PUBLIC` keyword ensures headers and libraries are installed (omit `PUBLIC` and re-install—you’ll see the library missing from `lib/`).
+- Separate libraries (e.g., `utils`) are installed as independent binaries in `lib/`, enabling clean code separation.
+
+## Step 6: Test the Difference Between `PUBLIC` and Non-`PUBLIC` Libraries
+The `PUBLIC` keyword is critical for controlling whether a library is shared outside your project. Let’s verify the difference with a quick experiment:
+
+### 1. Modify the `utils` library to remove `PUBLIC` (already omitted in Step 4, confirm it)
+Ensure the `utils` library has no `PUBLIC` keyword:
+```cmake title="myproject/myproject/CMakeLists.txt"
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME utils
+        SOURCES utils.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        # No PUBLIC keyword → internal-only
+)
+```
+
+### 2. Re-build and re-install
+```bash
+cd myproject  # Project root
+cmake --build build  # Rebuild with updated config
+cmake --install build --prefix build/installed_no_public  # Install to a new directory
+```
+
+### 3. Compare the two install directories
+```bash
+# List contents of the original (with PUBLIC foo) and new (no PUBLIC utils) install folders
+ls -l myproject/build/installed/lib/
+ls -l myproject/build/installed_no_public/lib/
+```
+
+#### Key Differences to Notice:
+| Scenario                | `build/installed/lib/` (foo: PUBLIC, utils: no PUBLIC) | `build/installed_no_public/lib/` (same config) |
+|-------------------------|-------------------------------------------------------|------------------------------------------------|
+| `libmyproject_foo.so`   | Exists (installed, as it’s marked `PUBLIC`)           | Exists (unchanged)                             |
+| `libmyproject_utils.so` | Does NOT exist (omitted `PUBLIC` → internal-only)     | Does NOT exist (consistent)                    |
+| `include/myproject/`    | Contains `foo.h`, `bar.h` (from PUBLIC foo)           | Contains `foo.h`, `bar.h` (unchanged)          |
+
+### 4. Reverse the experiment (optional)
+Add `PUBLIC` to the `utils` library and re-install to confirm it appears:
+```cmake
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME utils
+        SOURCES utils.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        PUBLIC  # Now mark as public
+)
+```
+```bash
+cmake --build build
+cmake --install build --prefix build/installed_utils_public
+ls -l myproject/build/installed_utils_public/lib/  # Now libmyproject_utils.so exists!
+```
+
+## Key Takeaways
+- **Build from root**: Use `cmake --build build` directly from the project root for consistency.
+- **Extend libraries**: Add new `.cc` files to the `SOURCES` list of an existing `kmcmake_cc_library` block.
+- **New libraries**: Add a new `kmcmake_cc_library` block (follow the same parameter pattern) for separate code modules.
+- **Installation**: `cmake --install build --prefix [path]` exports `PUBLIC` libraries and headers—inspect the output to validate your configuration.
+- **`PUBLIC` vs Non-`PUBLIC`**:
+  - `PUBLIC`: Library and headers are installed/exported (for use by external projects).
+  - Non-`PUBLIC`: Library is only built for internal project use (not installed/exported).
+- **Dependencies**: Use `PLINKS` for private dependencies (internal use only) and `PUBLIC_LINKS` for dependencies that need to be exposed to library users.
+- **Exported target metadata**: installed library targets expose `INTERFACE_KMCMAKE_RUNTIME_SIMD_LEVEL`, `INTERFACE_KMCMAKE_ARCH_FLAGS`, and `INTERFACE_KMCMAKE_CXX_OPTIONS`, so consumers can inspect build policy after `find_package()`.
+
+Next, we’ll learn how to link these libraries to an executable or share them with other projects via `find_package()`!

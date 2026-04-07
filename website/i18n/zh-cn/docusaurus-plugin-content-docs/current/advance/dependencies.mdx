@@ -1,0 +1,160 @@
+# 用 kmcmake 管理依赖：第三方库集成实践
+kmcmake 通过集中式变量 `KMCMAKE_DEPS_LINK` 简化依赖管理——将系统库、第三方包和自定义依赖统一整合到单一配置中。以下以 **`gflags`（轻量级命令行参数库）** 为例，演示 kmcmake 标准化的依赖集成流程，完全贴合项目模板的使用模式。
+
+全程遵循「`find_package()` → 加入 `KMCMAKE_DEPS_LINK` → 在 kmcmake 宏中使用」的逻辑，不涉及原生 CMake `target_link_libraries`，确保与实际项目用法一致。
+
+## 前置条件：安装第三方库（gflags）
+首先通过系统包管理器安装 `gflags`（简单且兼容性强）：
+### Linux（Debian/Ubuntu）
+```bash
+sudo apt-get update && sudo apt-get install -y libgflags-dev
+```
+### macOS（Homebrew）
+```bash
+brew install gflags
+```
+### Windows（Chocolatey）
+```bash
+choco install gflags
+```
+
+## 步骤 1：在 `cmake/myproject_deps.cmake` 中配置依赖
+kmcmake 生成的 `cmake/myproject_deps.cmake` 是管理外部依赖的专属文件（根目录 `CMakeLists.txt` 已默认引入，无需额外配置）。添加以下内容声明并链接 `gflags`：
+
+```cmake title="cmake/myproject_deps.cmake"
+# 1. 查找 gflags（CMake 内置查找模块）
+# "REQUIRED" 确保若未安装 gflags，构建直接失败（避免后续模糊的链接错误）
+find_package(gflags REQUIRED)
+
+# 2. 系统库配置（保留 kmcmake 模板默认内容）
+set(KMCMAKE_SYSTEM_DYLINK)
+if (APPLE)
+    find_library(CoreFoundation CoreFoundation)
+    list(APPEND KMCMAKE_SYSTEM_DYLINK ${CoreFoundation} pthread)
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    list(APPEND KMCMAKE_SYSTEM_DYLINK rt dl pthread)
+endif ()
+
+# 3. 集中式依赖列表：将 gflags 加入 KMCMAKE_DEPS_LINK
+# kmcmake 宏（库/二进制/接口）会通过 PLINKS 参数自动使用该变量
+set(KMCMAKE_DEPS_LINK
+        # 第三方库：gflags（现代 CMake 标准目标名，带命名空间）
+        gflags::gflags
+        # 系统库（来自 kmcmake 模板，无需手动修改）
+        ${KMCMAKE_SYSTEM_DYLINK}
+        # 其他第三方依赖可按相同模式添加（如 spdlog、ZLIB 等）
+        )
+
+# 移除重复依赖（kmcmake 标准实践，避免链接冲突）
+list(REMOVE_DUPLICATES KMCMAKE_DEPS_LINK)
+
+# 打印依赖列表用于验证（kmcmake 工具函数：配置阶段可见）
+kmcmake_print_list_label("依赖列表：" KMCMAKE_DEPS_LINK)
+```
+
+### 核心说明（与模板对齐）
+- `find_package(gflags REQUIRED)`：使用 CMake 内置模块查找 `gflags`，缺失时快速失败，避免后续链路错误。
+- `gflags::gflags`：遵循现代 CMake 目标约定（带命名空间），确保 kmcmake 正确解析头文件路径和库二进制文件。
+- `KMCMAKE_DEPS_LINK`：依赖「统一池」——所有 kmcmake 核心宏（`kmcmake_cc_library`、`kmcmake_cc_binary` 等）通过 `PLINKS` 参数自动继承该列表，无需重复写 `target_link_libraries`。
+- 无需额外引入：根目录 `CMakeLists.txt` 已默认包含 `cmake/myproject_deps.cmake`（kmcmake 模板生成），依赖配置直接生效。
+
+## 步骤 2：在核心代码中使用依赖
+更新 `myproject/` 下的代码，直接使用 `gflags`——kmcmake 会自动处理头文件路径和链接，无需手动配置：
+
+### 修改 `myproject/main.cc` 添加命令行参数
+```cpp title="myproject/main.cc"
+#include "foo.h"
+#include "api.h"
+#include <gflags/gflags.h>  // gflags 头文件（kmcmake 通过 KMCMAKE_DEPS_LINK 解析路径）
+#include <iostream>
+
+// 定义命令行参数（名称、默认值、描述）
+DEFINE_string(name, "用户", "用于问候的名称");
+DEFINE_int32(age, 0, "年龄（可选）");
+DEFINE_bool(verbose, false, "启用详细输出模式");
+
+int main(int argc, char* argv[]) {
+    // 解析命令行参数（gflags 核心函数）
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+    std::cout << "=== 运行 " << PROJECT_NAME << "_shared_main ===\n";
+
+    // 在业务逻辑中使用 gflags 参数
+    if (FLAGS_verbose) {
+        std::cout << "[详细模式] 已解析参数：姓名=" << FLAGS_name << "，年龄=" << FLAGS_age << "\n";
+    }
+
+    std::cout << "\n你好，" << FLAGS_name << "！\n";
+    myproject::foo();
+    myproject::api::print_version();
+
+    // 清理 gflags 资源
+    gflags::ShutDownCommandLineFlags();
+    return 0;
+}
+```
+
+## 步骤 3：构建并运行项目
+使用 kmcmake 标准构建流程，无需额外链接步骤（kmcmake 通过 `KMCMAKE_DEPS_LINK` 自动处理）：
+
+### 1. 从项目根目录构建
+```bash
+cd myproject  # 保持在项目根目录（kmcmake 推荐流程）
+cmake --build build
+```
+
+### 2. 验证依赖已加载
+构建过程中，会通过 `myproject_deps.cmake` 中的 `kmcmake_print_list_label` 打印依赖列表，确认 `gflags::gflags` 已包含：
+```
+依赖列表：
+- gflags::gflags
+- rt
+- dl
+- pthread
+```
+
+### 3. 传递命令行参数运行二进制文件
+测试自定义的 `gflags` 选项：
+```bash
+# Linux/macOS
+./build/myproject/myproject_shared_main --name "Alice" --age 30 --verbose
+
+# Windows（Debug 构建示例）
+build\myproject\Debug\myproject_shared_main.exe --name "Alice" --age 30 --verbose
+```
+
+### 预期输出
+```
+=== 运行 myproject_shared_main ===
+[详细模式] 已解析参数：姓名=Alice，年龄=30
+
+你好，Alice！
+你好，来自 myproject::foo！
+myproject::api v1.0.0（仅头文件接口）
+```
+
+## 步骤 4：扩展更多依赖（复用相同模式）
+该流程适用于所有兼容现代 CMake 的库（如 `spdlog`、`nlohmann_json`、`OpenSSL`）。以添加日志库 `spdlog` 为例：
+
+1. 安装 `spdlog`（如 Linux：`sudo apt-get install libspdlog-dev`）。
+2. 更新 `cmake/myproject_deps.cmake`：
+   ```cmake
+   # 新增 find_package 查找新库
+   find_package(spdlog REQUIRED)
+
+   # 追加到 KMCMAKE_DEPS_LINK
+   set(KMCMAKE_DEPS_LINK
+           gflags::gflags
+           spdlog::spdlog  # 新依赖（遵循命名空间目标约定）
+           ${KMCMAKE_SYSTEM_DYLINK}
+           )
+   ```
+3. 在代码中直接 `#include <spdlog/spdlog.h>`——kmcmake 自动解析头文件和链接。
+
+## 核心总结（kmcmake 依赖设计核心）
+1. **集中式可维护**：所有依赖统一配置在 `cmake/myproject_deps.cmake`，无分散配置，便于更新。
+2. **零冗余模板**：kmcmake 宏通过 `PLINKS` 继承 `KMCMAKE_DEPS_LINK`，无需手动写 `target_link_libraries`。
+3. **原生现代 CMake 兼容**：使用官方命名空间目标（如 `gflags::gflags`），跨平台可靠性更高。
+4. **与模板完全对齐**：遵循项目依赖配置的标准模式（系统库 + 第三方库 + 去重 + 验证）。
+
+该流程可无缝扩展到复杂项目（如实际场景中集成 `brpc`、`faiss`、`Arrow` 等）——保持依赖管理的整洁性，同时契合 kmcmake「约定优于配置」的设计理念。

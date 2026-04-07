@@ -1,0 +1,198 @@
+# kmcmake 生成的 `CMakePresets.json`：灵活无锁的构建变体配置
+kmcmake 生成的默认 `CMakePresets.json` 是管理构建配置的**轻量且高度可扩展基础**，完美契合你的「可选启用」设计理念：开箱即提供合理默认值，同时完全保持无偏见和无锁状态，支持用户按需定制。不绑定特定包管理器（kmpkg/vcpkg）或工具链——用户可完全掌控以适配自身工作流。
+
+## 核心设计：极简默认 + 无限灵活
+### 默认生成的预设（回顾）
+```json
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "default",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{KMPKG_CMAKE}"
+      }
+    }
+  ]
+}
+```
+该默认预设刻意保持极简：
+- 使用 `Unix Makefiles`（Linux/macOS 通用）作为构建生成器。
+- 固定构建目录为 `build/`（与 kmcmake 目录约定一致）。
+- 引用 `KMPKG_CMAKE` 环境变量指定工具链文件（默认支持 kmpkg，且易于替换）。
+
+### 核心优势：设计上的「无锁性」
+预设避免硬编码工具链、包管理器或构建标志，完全遵循「用户可自定义一切」的原则：
+- 不强制依赖 kmpkg/vcpkg：用户可将 `CMAKE_TOOLCHAIN_FILE` 替换为任意工具链（如自定义交叉编译脚本、vcpkg 的 `scripts/buildsystems/vcpkg.cmake`）。
+- 不锁定生成器：仅需修改一行代码，即可从 `Unix Makefiles` 切换到 `Ninja`、`Visual Studio 17 2022` 或 `Xcode`。
+- 无隐藏逻辑：所有配置在 JSON 文件中显式声明——用户无需学习 kmcmake 专属语法即可修改。
+
+## 实用定制示例
+用户可扩展默认预设，支持多构建类型、工具链和包管理器，同时保持与 kmcmake 核心工作流的兼容性。以下是常见的生产级定制场景：
+
+### 示例 1：添加多构建类型（Debug/Release/RelWithDebInfo）
+通过 `inherits` 复用默认基础配置，为不同构建类型添加预设：
+```json
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true, // 隐藏的基础预设（供其他预设复用）
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/${presetName}", // 每个预设独立构建目录
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "$env{CMAKE_BUILD_TYPE}",
+        "CMAKE_TOOLCHAIN_FILE": "$env{KMPKG_CMAKE}" // 默认为 kmpkg，支持覆盖
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "KMCMAKE_BUILD_TEST": "ON" // Debug 模式默认启用测试
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "KMCMAKE_BUILD_BENCHMARK": "ON" // Release 模式默认启用基准测试
+      }
+    },
+    {
+      "name": "relwithdebinfo",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo" // 带调试符号的优化构建
+      }
+    }
+  ]
+}
+```
+**使用方式**：
+```bash
+# 配置 Debug 构建
+cmake --preset debug
+
+# 配置 Release 构建
+cmake --preset release
+```
+- 构建目录隔离（`build/debug/`、`build/release/`），避免冲突。
+- kmcmake 标志（如 `KMCMAKE_BUILD_TEST`）直接集成到预设中，实现一键配置。
+
+### 示例 2：支持多工具链（kmpkg/vcpkg/自定义）
+扩展基础预设以支持不同包管理器/工具链，用户可通过预设选择：
+```json
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    // kmpkg 工具链（默认）
+    {
+      "name": "kmpkg-release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "$env{KMPKG_CMAKE}"
+      }
+    },
+    // vcpkg 工具链
+    {
+      "name": "vcpkg-debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    // 自定义交叉编译工具链（如 ARM）
+    {
+      "name": "arm-cross-release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm-linux-gnueabihf.cmake"
+      }
+    }
+  ]
+}
+```
+**使用方式**：
+```bash
+# 使用 vcpkg 配置 Debug 构建
+cmake --preset vcpkg-debug
+
+# 使用自定义 ARM 工具链配置 Release 构建
+cmake --preset arm-cross-release
+```
+- 无绑定限制：用户可添加/删除工具链，无需修改 kmcmake 核心。
+- 环境变量（`KMPKG_CMAKE`、`VCPKG_ROOT`）确保预设在不同机器上可移植。
+
+### 示例 3：Windows 专属预设（Visual Studio 生成器）
+添加跨平台预设，支持 Windows（Visual Studio）与 Linux/macOS 兼容：
+```json
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "windows-vs2022-release",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/windows-vs2022-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" // Windows 下使用 vcpkg
+      }
+    }
+  ]
+}
+```
+**使用方式**（Windows PowerShell）：
+```powershell
+cmake --preset windows-vs2022-release
+cmake --build build/windows-vs2022-release --config Release
+```
+- 契合 kmcmake 跨平台设计——预设自动处理生成器/架构差异。
+
+## 核心设计优势（契合「可选启用」理念）
+### 1. 无锁绑定，完全用户掌控
+- 不硬编码工具链/包管理器：用户可将 `CMAKE_TOOLCHAIN_FILE` 替换为任意值（kmpkg/vcpkg/自定义）。
+- 无强制预设：默认 `default` 预设仅为起点——用户可删除、修改或添加预设，不会破坏 kmcmake 功能。
+- 兼容原生 CMake 工作流：预设是 CMake 标准特性，而非 kmcmake 专属——熟悉 CMake 的用户可直接适配。
+
+### 2. 平衡一致性与灵活性
+- 通过 `inherits` 复用配置：`base` 预设模式减少重复——公共设置（生成器、构建目录结构）仅需定义一次，后续可扩展。
+- 独立构建目录：每个预设使用专属 `binaryDir`，避免不同构建类型/工具链之间的冲突。
+- 配置显式化：所有构建设置（构建类型、kmcmake 标志、工具链）在 JSON 文件中可见——无隐藏逻辑。
+
+### 3. 可移植性与协作性
+- 环境变量支持：引用 `$env{KMPKG_CMAKE}`、`$env{VCPKG_ROOT}` 等环境变量，使预设在不同机器上可移植（无硬编码路径）。
+- 配置共享：团队可将定制化预设提交到 Git——确保所有开发者使用一致的构建设置（如「带测试的 Debug 构建」「带基准测试的 Release 构建」）。
+
+### 4. 低学习成本
+- 遵循 CMake 标准 `CMakePresets.json`  schema：无 kmcmake 专属扩展——用户可利用现有 CMake 知识进行定制。
+- 默认预设开箱即用：新用户无需修改即可运行 `cmake --preset default`（若已配置 kmpkg），高级用户则可按需扩展。
+
+## 用户关键最佳实践
+1. **将定制预设提交到 Git**：与团队共享预设（如 `debug`、`release`、`vcpkg-debug`），确保构建一致性。
+2. **使用 `inherits` 避免重复**：定义 `base` 预设存储公共设置（生成器、构建目录结构），后续预设通过继承复用——更易维护。
+3. **工具链外部化存储**：将自定义工具链文件（如 `arm-linux-gnueabihf.cmake`）放在 `cmake/toolchains/` 目录下，预设通过相对路径引用。
+4. **避免硬编码路径**：使用环境变量（如 `$env{VCPKG_ROOT}`）替代绝对路径，保证预设可移植。
+
+## 预设模板最终评估
+默认 `CMakePresets.json` 是**「可选启用」设计的完美体现**：
+- 「存在性」：提供合理的零配置起点（运行 `cmake --preset default` 即可启动构建）。
+- 「非强制性」：不施加任何限制——用户可定制每一个细节（工具链、构建类型、生成器），无需与 kmcmake 本身冲突。
+
+作为 kmcmake 核心模板的补充，它以标准、可移植的方式解决了「多构建变体管理」问题——无需引入 kmcmake 专属复杂度。对于小型项目，它足够轻量；
+对于大型跨平台团队，它足够强大。最关键的是：它与 CMake 原生生态兼容，用户无需绑定 kmcmake——若有需要，可将预设和项目结构迁移到其他构建系统。

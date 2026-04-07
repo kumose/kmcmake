@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Deprecated: this legacy skip-list mechanism is no longer recommended.
 
 set(${PROJECT_NAME}_SKIP_TEST "")
 set(${PROJECT_NAME}_SKIP_BENCHMARK "")

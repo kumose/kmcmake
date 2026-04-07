@@ -42,7 +42,7 @@ function(kmcmake_cc_binary)
     )
 
     set(${KMCMAKE_CC_BINARY_NAME}_INCLUDE_SYSTEM SYSTEM)
-    if (KMCMAKE_CC_LIB_EXCLUDE_SYSTEM)
+    if (KMCMAKE_CC_BINARY_EXCLUDE_SYSTEM)
         set(${KMCMAKE_CC_BINARY_NAME}_INCLUDE_SYSTEM "")
     endif ()
 
@@ -77,11 +77,16 @@ function(kmcmake_cc_binary)
             PUBLIC
             ${KMCMAKE_CC_BINARY_DEFINES}
     )
+    set_target_properties(${exec_case} PROPERTIES
+            INTERFACE_KMCMAKE_RUNTIME_SIMD_LEVEL "${KMCMAKE_RUNTIME_SIMD_LEVEL}"
+            INTERFACE_KMCMAKE_ARCH_FLAGS "${KMCMAKE_ARCH_OPTION}"
+            INTERFACE_KMCMAKE_CXX_OPTIONS "${KMCMAKE_CXX_OPTIONS}"
+    )
 
     target_link_options(${exec_case} PRIVATE ${KMCMAKE_CC_BINARY_LINKOPTS})
 
 
-    target_include_directories(${exec_case} ${${KMCMAKE_CC_LIB_NAME}_INCLUDE_SYSTEM}
+    target_include_directories(${exec_case} ${${KMCMAKE_CC_BINARY_NAME}_INCLUDE_SYSTEM}
             PRIVATE
             ${KMCMAKE_CC_BINARY_INCLUDES}
             "$<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}>"

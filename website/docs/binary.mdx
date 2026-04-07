@@ -1,0 +1,186 @@
+---
+sidebar_position: 3
+---
+
+# Build Your First Binary Executable
+
+Now that you’ve created a concrete library (`foo`) and an interface library (`api`) with kmcmake, let’s build a runnable binary (`shared_main`) using the native `kmcmake_cc_binary` macro—strictly following your implementation’s parameter design (e.g., `NAMESPACE`, `DEPS`, `LINKS`).
+
+## Step 1: Add `kmcmake_cc_binary` Configuration
+Open `myproject/myproject/CMakeLists.txt` and add the `shared_main` binary configuration **after your existing `kmcmake_cc_library` and `kmcmake_cc_interface` blocks**:
+
+```cmake title="myproject/myproject/CMakeLists.txt"
+# Existing components (keep them unchanged)
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME foo
+        SOURCES foo.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        PUBLIC
+)
+
+kmcmake_cc_interface(
+        NAMESPACE ${PROJECT_NAME}
+        NAME api
+        HEADERS api.h
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PUBLIC
+)
+
+# New Binary: shared_main (follows your kmcmake_cc_binary parameter design)
+kmcmake_cc_binary(
+        NAMESPACE ${PROJECT_NAME}  # Namespace for the binary (consistent with libraries)
+        NAME shared_main           # Final executable name (e.g., myproject_shared_main)
+        SOURCES
+        main.cc                    # Entry point (must contain int main())
+        CXXOPTS
+        ${KMCMAKE_CXX_OPTIONS}     # Reuse kmcmake's standardized compile flags
+        DEPS
+        ${PROJECT_NAME}::foo       # Dependencies (links interface/concrete libraries)
+        ${PROJECT_NAME}::api       # Add interface library as dependency (reuse api.h)
+        LINKS
+        ${KMCMAKE_DEPS_LINK}       # Extra link flags/dependencies
+        ${PROJECT_NAME}::foo       # Explicitly link the concrete foo library
+        PUBLIC                     # Mark as public: installed to bin/ directory
+)
+```
+
+### Key Parameter Explanations (Aligned with Your Implementation)
+| Parameter   | Purpose (As Per Your kmcmake Design)                                                                 |
+|-------------|------------------------------------------------------------------------------------------------------|
+| `NAMESPACE` | Applies the project namespace to the binary (consistent with libraries, e.g., `myproject::shared_main` for reference). |
+| `NAME`      | Core name of the executable—final binary follows: `[NAMESPACE]_[NAME]` (Linux/macOS: `myproject_shared_main`; Windows: `myproject_shared_main.exe`). |
+| `SOURCES`   | Entry point source file (must include `int main()`—the binary’s execution starting point) + auxiliary files. |
+| `CXXOPTS`   | Inherits kmcmake’s standardized C++ compile flags (e.g., `-std=c++17`, `-O2`) for consistency with libraries. |
+| `DEPS`      | Declares dependencies on your project’s internal libraries (concrete/interface: `myproject::foo`, `myproject::api`—ensures headers/libraries are resolved). |
+| `LINKS`     | Explicitly links dependencies (both project libraries and external deps via `${KMCMAKE_DEPS_LINK}`) during compilation. |
+| `PUBLIC`    | Marks the binary as installable—will be exported to the `bin/` directory during `cmake --install`. |
+
+## Step 2: Create the Entry Point (`main.cc`)
+In `myproject/myproject/`, create `main.cc` (required for `SOURCES`) with a `main()` function that uses your `foo` library and `api` interface:
+
+```cpp title="myproject/myproject/main.cc"
+#include "foo.h"   // From concrete library: myproject::foo
+#include "api.h"   // From interface library: myproject::api
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    std::cout << "=== Running " << PROJECT_NAME << "_shared_main (Powered by kmcmake) ===\n";
+
+    // Use logic from concrete library (foo)
+    std::cout << "\n1. Calling myproject::foo():\n";
+    myproject::foo();  // Implemented in foo.cc
+
+    // Use API from interface library (api)
+    std::cout << "\n2. Using myproject::api functionality:\n";
+    myproject::api::print_version();  // Example API (implement in api.h)
+    myproject::api::greet("Binary User");
+
+    std::cout << "\n=== Execution Completed Successfully ===\n";
+    return 0;
+}
+```
+
+### Supplement `api.h` (Interface Library Implementation)
+Ensure `api.h` (from `kmcmake_cc_interface`) has the declared functions used in `main.cc`:
+```cpp title="myproject/myproject/api.h"
+#ifndef MYPROJECT_API_H
+#define MYPROJECT_API_H
+
+#include <string>
+#include <iostream>
+
+namespace myproject::api {
+    // Example version info (interface-only, no .cc needed)
+    inline void print_version() {
+        std::cout << "API Version: 1.0.0 (Header-only Interface)\n";
+    }
+
+    // Example greeting function
+    inline void greet(const std::string& name) {
+        std::cout << "Hello, " << name << "! This is the public API from myproject::api.\n";
+    }
+}  // namespace myproject::api
+
+#endif  // MYPROJECT_API_H
+```
+
+## Step 3: Build the Binary (From Project Root)
+Run the build command in the `myproject` root directory—kmcmake will automatically compile the binary, resolve dependencies, and link the `foo` library + `api` interface:
+
+```bash
+cd myproject  # Ensure you're in the project root
+cmake --build build  # Builds libraries + binary in one step
+```
+
+### Verify the Binary Exists
+Check the build directory for the executable (follows `[NAMESPACE]_[NAME]` naming):
+- Linux/macOS: `build/myproject/myproject_shared_main`
+- Windows: `build/myproject/Debug/myproject_shared_main.exe` (Debug) / `Release/` (Release)
+
+## Step 4: Run the Binary Locally
+Test the executable directly to confirm it links libraries/interface correctly:
+
+```bash
+# Linux/macOS
+./build/myproject/myproject_shared_main
+
+# Windows (Command Prompt/PowerShell)
+build\myproject\Debug\myproject_shared_main.exe
+```
+
+### Expected Output
+```
+=== Running myproject_shared_main (Powered by kmcmake) ===
+
+1. Calling myproject::foo():
+Hello from myproject::foo! (Implemented in foo.cc)
+
+2. Using myproject::api functionality:
+API Version: 1.0.0 (Header-only Interface)
+Hello, Binary User! This is the public API from myproject::api.
+
+=== Execution Completed Successfully ===
+```
+
+## Step 5: Install the Binary and Inspect
+Install the binary (alongside libraries/headers) and verify the standard project layout:
+
+```bash
+cd myproject  # Project root
+cmake --install build --prefix build/installed  # Install all PUBLIC components
+```
+
+### Check the Installed Binary
+Navigate to the install directory—your binary will be in `bin/` (standard for executables):
+```bash
+# Linux/macOS
+cd myproject/build/installed
+ls -l bin/  # Shows "myproject_shared_main"
+./bin/myproject_shared_main  # Run the installed binary
+
+# Windows
+cd myproject\build\installed
+dir bin\  # Shows "myproject_shared_main.exe"
+bin\myproject_shared_main.exe
+```
+
+### Full Installed Structure (Consistent with C++ Conventions)
+Your `build/installed` now contains all `PUBLIC` components, matching standard C++ project layout:
+```
+build/installed/
+├── bin/                  # Executable (myproject_shared_main)
+├── include/              # Headers (foo.h, api.h)
+│   └── myproject/        # Namespaced headers (from NAMESPACE parameter)
+└── lib/                  # Concrete library (libmyproject_foo.so/.a)
+```
+
+## Key Takeaways
+- **`kmcmake_cc_binary` Usage**: Follows the same `NAMESPACE`-centric design as libraries—ensures consistent naming for all project components.
+- **Dependencies**: Use `DEPS` to declare internal library/interface dependencies, `LINKS` for explicit linking (aligns with your kmcmake implementation).
+- **Build & Install Workflow**: Same as libraries—`cmake --build build` (root directory) + `cmake --install`—no new commands to learn.
+- **Public Binary**: `PUBLIC` keyword ensures the executable is installed to `bin/`, making it accessible to users (omit for internal-test-only binaries).
+- **Exported target metadata**: public binaries now carry `INTERFACE_KMCMAKE_RUNTIME_SIMD_LEVEL`, `INTERFACE_KMCMAKE_ARCH_FLAGS`, and `INTERFACE_KMCMAKE_CXX_OPTIONS` for downstream inspection.
+
+Next, we’ll explore how to customize the binary (e.g., add CLI arguments) or share your project with others via `find_package()`.

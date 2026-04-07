@@ -1,0 +1,234 @@
+---
+slug: mdx-blog
+title: 为什么用cmake
+authors: [jeff]
+tags: [cmake]
+---
+
+# 从CMake内卷中破局：用第一性原理，5分钟搞定C++项目构建
+如果你是C++开发者，大概率埋没过“构建地狱”的深渊：对着Makefile的嵌套语法抓耳挠腮，改一行编译选项要翻遍百行脚本；切换到CMake后，又被`target_link_libraries`的PUBLIC/PRIVATE逻辑绕晕，写个简单库的配置文件比业务代码还长；偶尔想试试Bazel、Blade、Xmake，却发现每个工具都有专属“黑话体系”，光学习成本就够喝一壶——更别提生产环境里的终极折磨：为了集成一个第三方库，反复安装依赖、调试编译参数，甚至折腾半个月才勉强跑通，最后还得面对“换台机器就崩”的噩梦。难道构建C++项目，非要先渡劫成“构建工具专家”才能开工？
+<!-- truncate -->
+直到我用第一性原理重新审视这个问题，才发现我们都被工具绑架了：我们要的从来不是“精通CMake”，而是“快速搭建可运行、可集成、可部署的项目”，是“不用为了一个库浪费半个月”的效率。而要实现这个目标，光喊口号没用——必须先把CMake的构建流程拆透，知道每个阶段能做什么、该怎么做，才能用第一性原理重构出真正高效的框架。于是有了kmcmake——一个基于CMake底层流程设计，把复杂逻辑踩在脚下，让你5分钟上手、零侵入集成的CMake框架，它的核心使命就是：终结“为编译一个库折腾半月”的荒诞历史，同时让你明白“背后的逻辑”，而非盲目使用。
+
+## 先搞懂：CMake构建的“底层流程”是什么？（第一性原理的基础）
+第一性原理的核心是“回归本质”，而CMake的本质是“跨平台构建流程的组织者”——它不直接编译代码，而是按固定阶段生成对应平台的构建文件（Makefile、Visual Studio解决方案等）。要让构建变简单，必须先吃透这**三个核心阶段**，知道每个阶段的职责边界和操作逻辑：
+
+### 阶段1：配置阶段（Configure Phase）——“找东西+定规则”
+- **核心任务**：解析CMakeLists.txt，查找依赖库、设置编译选项、定义目标（库/可执行文件）、配置安装规则。
+- **关键操作**：
+  1. 依赖查找：通过`find_package`、`find_library`、`find_path`查找第三方库（如spdlog、Protobuf），确定库文件和头文件路径；
+  2. 目标定义：用`add_library`/`add_executable`创建目标，用`target_include_directories`设置包含路径，用`target_link_libraries`链接依赖；
+  3. 变量配置：设置`CMAKE_BUILD_TYPE`（Debug/Release）、`CMAKE_INSTALL_PREFIX`（安装根目录）、`CMAKE_CXX_STANDARD`（C++标准）等核心变量；
+  4. 条件判断：通过`if-else`适配不同平台（Linux/macOS/Windows）、不同编译器（GCC/Clang/MSVC）。
+- **生产环境的坑**：曾经为了查找一个自定义安装的Protobuf库，手动设置`CMAKE_PREFIX_PATH`、`PROTOBUF_INCLUDE_DIR`、`PROTOBUF_LIBRARY`三个变量，反复调试了2天；还有一次因为`find_package`的`CONFIG`模式和`MODULE`模式搞混，导致CI环境找不到库，折腾了一周才定位问题。
+
+### 阶段2：生成阶段（Generate Phase）——“写文件”
+- **核心任务**：根据配置阶段的规则，生成对应平台的构建文件（如Linux的Makefile、macOS的Xcode项目、Windows的VS解决方案）。
+- **关键操作**：
+  1. 自动生成编译命令：将`target_compile_options`设置的 flags 转化为Makefile中的`CXXFLAGS`；
+  2. 生成依赖关系：将`target_link_libraries`的依赖转化为Makefile中的链接命令，处理静态库/共享库的依赖传递；
+  3. 生成安装规则：将`install`指令转化为Makefile中的`install`目标，定义头文件、库文件、可执行文件的安装路径。
+- **生产环境的坑**：曾经用原生CMake写`install`规则时，没注意`CMAKE_INSTALL_LIBDIR`（库安装目录）和`CMAKE_INSTALL_INCLUDEDIR`（头文件安装目录）的平台差异，导致在Linux上安装正常，在macOS上库文件和头文件路径错位，第三方项目引用时找不到头文件。
+
+### 阶段3：构建/安装阶段（Build/Install Phase）——“执行命令”
+- **核心任务**：调用编译器（GCC/Clang/MSVC）编译代码、链接库文件，最终生成目标文件（库/可执行文件）；执行`make install`时，按生成阶段的规则复制文件到指定目录。
+- **关键操作**：
+  1. 编译：按生成的构建文件执行编译命令，将源码文件（.cc/.cpp）编译为目标文件（.o/.obj）；
+  2. 链接：将目标文件和依赖库链接为最终的静态库（.a/.lib）、共享库（.so/.dll）或可执行文件；
+  3. 安装：复制库文件、头文件、可执行文件到`CMAKE_INSTALL_PREFIX`指定的目录（如`/usr/local/lib`、`/usr/local/include`）。
+- **生产环境的坑**：曾经因为`target_link_libraries`的`PUBLIC`/`PRIVATE`设置错误，导致共享库的依赖传递失败——自己的库编译正常，但第三方项目链接时提示“找不到依赖的spdlog库”，最后发现是把`PUBLIC`写成了`PRIVATE`，导致spdlog的链接信息没有传递给第三方项目。
+
+这三个阶段环环相扣，任何一个环节的配置失误都会导致构建失败。而第一性原理告诉我们：**构建工具的价值，是把每个阶段的复杂操作“模块化、自动化”，让开发者不用关心“阶段细节”，只需要告诉工具“最终目标”**。kmcmake的所有设计，都严格遵循CMake的底层流程，在每个阶段做“精准封装”，既不破坏CMake的原生逻辑，又能让复杂操作变简单——让CMake从“必须学的技能”变成“不用管的实现细节”，让“集成一个库”从“半个月工程”变成“5分钟操作”。
+
+## 7个核心目标，kmcmake如何基于CMake流程实现？（第一性原理的落地）
+我的核心诉求很明确——终结折腾、提升效率，而kmcmake就是这些目标在CMake三个阶段的“精准映射”，每个功能都能对应到CMake的具体操作，没有任何含糊其辞：
+
+### 1. 5分钟搭建项目：配置阶段的“模块化封装”
+原生CMake在配置阶段，要手动写`add_library`、`target_include_directories`、`target_link_libraries`、`install`等一系列指令，还要考虑目标别名、静态/共享库切换、依赖传递等细节。比如要创建一个支持静态/共享库的项目，原生CMake需要写：
+```cmake
+# 原生CMake：创建静态库+共享库+安装规则+别名（50多行代码）
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+
+add_library(my_lib src/my_lib.cc)
+add_library(my_lib::my_lib ALIAS my_lib)
+
+target_include_directories(my_lib
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(my_lib PRIVATE spdlog::spdlog)
+target_compile_features(my_lib PUBLIC cxx_std_17)
+
+install(TARGETS my_lib
+  EXPORT my_lib_targets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT my_lib_targets
+  FILE my_libTargets.cmake
+  NAMESPACE my_lib::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/my_lib
+)
+```
+这还只是基础配置，要是加上编译选项、条件判断，代码量会翻倍。而kmcmake在配置阶段做了“模块化封装”，把上述所有操作浓缩成一个宏，你只需要告诉它“目标、源码、包含路径、依赖”，剩下的配置阶段操作kmcmake自动完成：
+```cmake
+# kmcmake：一行宏搞定配置阶段所有操作（5分钟上手）
+kmcmake_cc_library(
+    NAME my_lib
+    SOURCES src/my_lib.cc
+    INCLUDES include
+    LINKS spdlog::spdlog
+    CXXOPTS -std=c++17
+)
+```
+- 底层逻辑：kmcmake在配置阶段自动执行以下操作：
+  1. 调用`add_library`创建目标，支持`BUILD_SHARED_LIBS`开关切换静态/共享库；
+  2. 自动设置`target_include_directories`的`BUILD_INTERFACE`和`INSTALL_INTERFACE`，不用手动写生成器表达式；
+  3. 自动创建`{NAME}::{NAME}`别名，统一目标引用方式；
+  4. 自动添加`install`规则，遵循`GNUInstallDirs`标准，不用关心`CMAKE_INSTALL_LIBDIR`等变量；
+  5. 自动传递依赖关系，`LINKS`参数默认按`PUBLIC`/`PRIVATE`智能区分（库依赖用`PRIVATE`，工具链依赖用`PUBLIC`）。
+
+曾经为了配置一个带静态/共享库的项目，我在原生CMake里写了50多行代码，反复调试了3小时；用kmcmake后，5分钟就搞定，还不用担心生成器表达式写错、
+安装路径错位等问题。
+
+### 2. 无缝集成CI：配置阶段的“跨平台自动适配”
+CI/CD的核心痛点是“跨平台配置适配”——不同类Unix系统（Linux/macOS）的依赖路径、编译选项差异，需要在配置阶段写大量`if-else`判断。比如原生CMake要适配GCC和Clang的编译选项，需要：
+```cmake
+# 原生CMake：跨平台编译选项适配（冗余且易出错）
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  target_compile_options(my_lib PRIVATE -Wall -Wextra -Werror)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  target_compile_options(my_lib PRIVATE -Wall -Wextra -Werror -Wno-gnu-zero-variadic-macro-arguments)
+endif()
+
+# 依赖查找适配
+if(UNIX AND NOT APPLE)
+  set(PROTOBUF_LIBRARY_PATH /usr/lib/x86_64-linux-gnu)
+elseif(APPLE)
+  set(PROTOBUF_LIBRARY_PATH /usr/local/lib)
+endif()
+find_library(PROTOBUF_LIBRARY protobuf PATHS ${PROTOBUF_LIBRARY_PATH})
+```
+而kmcmake在配置阶段做了“跨平台自动适配”，底层逻辑直接对接CMake的平台判断接口：
+- 自动识别`CMAKE_CXX_COMPILER_ID`，内置GCC/Clang的通用编译选项，不用手动写`if-else`；
+- 自动遵循`GNUInstallDirs`标准，依赖查找优先使用`find_package`的`CONFIG`模式，找不到再用`MODULE`模式，跨平台路径差异由CMake原生处理；
+- 内置测试宏`kmcmake_cc_test`，在配置阶段自动注册测试目标，CI中只需加`-DKMCMAKE_BUILD_TEST=ON`，不用手动写`add_test`指令。
+
+曾经为了让CI能编译一个带Protobuf依赖的项目，光是适配`protoc`路径和编译选项就折腾了一周；现在用kmcmake，CI脚本简化到：
+```bash
+# 配置+编译+测试+安装，全程无额外操作
+cmake --preset default -DKMCMAKE_BUILD_TEST=ON
+cmake --build build
+ctest --test-dir build
+cmake --install build
+```
+不用关心跨平台差异，配置阶段的适配逻辑kmcmake已经全部封装好。
+
+### 3. 轻松部署：生成阶段+安装阶段的“规则自动化”
+部署的核心是“让第三方项目能找到你的库”，这需要在生成阶段生成`Config.cmake`文件，在安装阶段正确复制头文件、库文件和配置文件。原生CMake要实现这一点，需要手动写：
+```cmake
+# 原生CMake：生成Config.cmake文件（冗余且易出错）
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+  my_libConfigVersion.cmake
+  VERSION 1.0.0
+  COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/my_libConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/my_libConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/my_lib
+  PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/my_libConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/my_libConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/my_lib
+)
+```
+还要手动创建`my_libConfig.cmake.in`模板文件，稍不注意就会导致第三方项目`find_package`失败。而kmcmake的解决方案是：
+- 生成阶段：自动调用`write_basic_package_version_file`和`configure_package_config_file`，生成`Config.cmake`和
+`ConfigVersion.cmake`文件，不用手动写模板；
+- 安装阶段：自动安装配置文件到`${CMAKE_INSTALL_LIBDIR}/cmake/{NAME}`目录，确保第三方项目能通过`find_package`找到；
+- 底层逻辑：kmcmake在生成阶段自动提取目标的包含路径、依赖关系、编译选项，写入配置文件，第三方项目调用`find_package`时，CMake会自动
+加载这些信息，实现“一键链接”。
+
+曾经我写的一个库，因为没处理好`Config.cmake`文件，用户反馈“找了三天都不知道怎么链接”，最后我远程协助调试了半天；用kmcmake后，部署时只
+需要`make install`，第三方项目直接用`find_package(my_lib REQUIRED)`就能链接，再也没有“找不到库”的问题。
+
+### 4. 无隐藏条件：配置阶段的“明牌逻辑”
+很多CMake新手踩坑，是因为不了解“配置阶段的执行顺序”和“变量作用域”——比如`find_package`要放在`add_library`之前，
+`target_include_directories`的`PUBLIC`/`PRIVATE`要区分清楚，这些“隐藏规则”让新手望而却步。kmcmake的原则是“明牌逻辑”，所有操作
+都遵循CMake的原生执行顺序，没有任何隐藏条件：
+- 参数含义明确：`INCLUDES`对应`target_include_directories(PUBLIC)`，`PINCLUDES`对应`target_include_directories(PRIVATE)`，`LINKS`对应`target_link_libraries(PUBLIC)`，`PLINKS`对应`target_link_libraries(PRIVATE)`，没有歧义；
+- 执行顺序固定：kmcmake宏内部先执行`find_package`（如果有依赖），再执行`add_library`，最后执行`target_*`系列指令，完全符合CMake的原生
+执行逻辑；
+- 报错信息明确：如果依赖找不到，kmcmake会直接打印“找不到XXX库，请安装或设置XXX路径”，不会默默忽略，方便定位问题。
+
+曾经为了让一个库能被`find_package`找到，我踩了无数坑，最后发现是`CMAKE_INSTALL_PREFIX`设置错了——这种隐藏条件，新手根本猜不到；而kmcmake把所有规则“明牌化”，不用记CMake的执行顺序，按直觉配置就能成功。
+
+### 5. 兼容类Unix系统：配置阶段+生成阶段的“标准适配”
+类Unix系统的兼容问题，本质是“配置阶段的依赖查找”和“生成阶段的路径规则”差异。kmcmake的解决方案是：
+- 配置阶段：自动调用`include(GNUInstallDirs)`，使用`CMAKE_INSTALL_LIBDIR`、`CMAKE_INSTALL_INCLUDEDIR`等标准变量，不用手动设置路径；
+- 生成阶段：生成的Makefile遵循类Unix系统的编译规范，库文件安装到`/usr/local/lib`，头文件安装到`/usr/local/include`，符合第三方库的默认查找路径；
+- 依赖查找：优先使用`find_package`的标准模式，支持`CMAKE_PREFIX_PATH`环境变量，类Unix系统下不用手动设置依赖路径。
+
+曾经在Linux和macOS上编译同一个项目，用原生CMake要写两套`if-else`判断依赖路径，现在用kmcmake，一套配置搞定，不用关心系统差异。
+
+### 6. 零侵入：配置阶段的“原生兼容”
+kmcmake的核心是“封装”而非“替代”，完全兼容CMake的原生指令——在kmcmake宏之后，你可以继续用原生CMake指令扩展配置，不会破坏原有逻辑：
+```cmake
+# kmcmake宏 + 原生CMake指令，零侵入扩展
+kmcmake_cc_library(
+    NAME my_lib
+    SOURCES src/my_lib.cc
+    INCLUDES include
+)
+
+# 原生CMake扩展：添加自定义编译选项（配置阶段执行）
+target_compile_options(my_lib PRIVATE -Wno-unused-parameter)
+
+# 原生CMake扩展：添加条件判断（配置阶段执行）
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
+```
+底层逻辑：kmcmake宏执行后，会创建标准的CMake目标（如`my_lib`），后续的原生`target_*`指令可以直接操作该目标，完全符合CMake的目标管理逻辑。
+
+曾经我用某个框架，因为它强制要求源码放在`src`目录下，我不得不重构整个项目的目录结构，花了一周时间；而kmcmake不强制任何目录结构，不绑
+架你的项目，想加就加，想改就改。
+
+### 7. 不造新工具：基于CMake原生流程的“封装层”
+第一性原理强调“避免冗余”：CMake已经是行业标准，生态完善，支持所有类Unix系统，没必要再造一个新的构建工具（既费时又费力，还没人用）。
+kmcmake的定位是“CMake的封装层”，所有功能都基于CMake的三个核心阶段实现：
+- 不修改CMake的原生流程，只是在配置阶段自动执行重复的`target_*`、`install`等指令；
+- 不依赖额外工具，只需要CMake 3.21+，不用安装其他二进制文件；
+- 不破坏CMake的生态，支持所有`find_package`能找到的库，支持所有CMake的原生变量和指令。
+
+就像你用手机不用懂芯片原理，用kmcmake也不用懂CMake的底层流程——但如果你想懂，每个功能都能对应到CMake的具体操作，完全具备信服力。
+
+## 总结：第一性原理+CMake流程，让构建变简单
+我们之所以觉得构建C++项目麻烦，是因为把“工具语法”和“核心需求”搞反了——我们要的不是“精通CMake的三个阶段和所有指令”，而是“不用为了
+一个库折腾半个月”；不是“掌握生成器表达式、依赖传递等复杂概念”，而是“5分钟搭建项目，无缝集成CI，轻松部署”。
+
+而第一性原理的价值，就是帮我们剥离噪音，回归CMake的底层流程本质：把每个阶段的复杂操作“模块化、自动化”，让开发者不用关心“阶段细节”，只需要告诉
+工具“最终目标”。kmcmake没有创造新的构建逻辑，只是用第一性原理把CMake的三个核心阶段“翻译”成了开发者能直接用的简单接口——每个宏都对应着CMake配
+置、生成、安装阶段的一系列标准操作，既精准又透明，没有任何含糊。
+
+现在，你不用再花几周时间学CMake，不用再为Makefile的语法头疼，不用再担心切换工具链的成本，更不用为了集成一个库折腾半个月——这些都交给kmcmake，你
+只需要专注于写好业务代码。
+
+毕竟，我们是C++开发者，不是“构建工具工程师”。让工具回归工具的本质（按底层流程自动完成重复工作），让我们回归开发的本质（专注业务逻辑），这才是第一性
+原理的真正力量。
+
+如果你也受够了构建工具的内卷，受够了为编译一个库折腾半月的痛苦，不妨试试kmcmake——5分钟上手，零学习成本，让构建C++项目像呼吸一样简单，同时让你明白“背后的逻辑”，而非盲目使用。

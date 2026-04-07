@@ -1,0 +1,180 @@
+# 构建你的第一个二进制可执行程序
+既然你已经用 kmcmake 创建了实体库（`foo`）和接口库（`api`），现在我们使用原生 `kmcmake_cc_binary` 宏构建可运行二进制文件（`shared_main`）——严格遵循你实现的参数设计（如 `NAMESPACE`、`DEPS`、`LINKS`）。
+
+## 步骤 1：添加 `kmcmake_cc_binary` 配置
+打开 `myproject/myproject/CMakeLists.txt`，在已有的 `kmcmake_cc_library` 和 `kmcmake_cc_interface` 配置块**之后**，添加 `shared_main` 二进制文件配置：
+
+```cmake title="myproject/myproject/CMakeLists.txt"
+# 已有组件（保持不变）
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME foo
+        SOURCES foo.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        PUBLIC
+)
+
+kmcmake_cc_interface(
+        NAMESPACE ${PROJECT_NAME}
+        NAME api
+        HEADERS api.h
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PUBLIC
+)
+
+# 新二进制文件：shared_main（遵循 kmcmake_cc_binary 参数设计）
+kmcmake_cc_binary(
+        NAMESPACE ${PROJECT_NAME}  # 二进制文件的命名空间（与库保持一致）
+        NAME shared_main           # 最终可执行文件名（例：myproject_shared_main）
+        SOURCES
+        main.cc                    # 入口文件（必须包含 int main()）
+        CXXOPTS
+        ${KMCMAKE_CXX_OPTIONS}     # 复用 kmcmake 标准化编译选项
+        DEPS
+        ${PROJECT_NAME}::foo       # 依赖（链接实体库/接口库）
+        ${PROJECT_NAME}::api       # 添加接口库依赖（复用 api.h）
+        LINKS
+        ${KMCMAKE_DEPS_LINK}       # 额外链接标志/依赖
+        ${PROJECT_NAME}::foo       # 显式链接实体库 foo
+        PUBLIC                     # 标记为公共：安装到 bin/ 目录
+)
+```
+
+### 关键参数说明（与你的实现对齐）
+| 参数        | 用途（按你的 kmcmake 设计）                                                                 |
+|-------------|------------------------------------------------------------------------------------------|
+| `NAMESPACE` | 为二进制文件添加项目命名空间（与库保持一致，例：`myproject::shared_main` 用于依赖引用）       |
+| `NAME`      | 可执行文件核心名称——最终产物命名规则：`[命名空间]_[名称]`（Linux/macOS：`myproject_shared_main`；Windows：`myproject_shared_main.exe`） |
+| `SOURCES`   | 入口源文件（必须包含 `int main()`——二进制文件的执行起点）+ 辅助文件                          |
+| `CXXOPTS`   | 继承 kmcmake 标准化 C++ 编译选项（如 `-std=c++17`、`-O2`），与库保持一致性                  |
+| `DEPS`      | 声明项目内部库依赖（实体库/接口库：`myproject::foo`、`myproject::api`——确保头文件/库被解析） |
+| `LINKS`     | 编译时显式链接依赖（包括项目库和通过 `${KMCMAKE_DEPS_LINK}` 引入的外部依赖）                 |
+| `PUBLIC`    | 标记二进制文件可安装——`cmake --install` 时会导出到 `bin/` 目录                             |
+
+## 步骤 2：创建入口文件 `main.cc`
+在 `myproject/myproject/` 目录下，创建 `main.cc`（`SOURCES` 必需文件），在 `main()` 函数中调用 `foo` 库和 `api` 接口的功能：
+
+```cpp title="myproject/myproject/main.cc"
+#include "foo.h"   // 来自实体库：myproject::foo
+#include "api.h"   // 来自接口库：myproject::api
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    std::cout << "=== 运行 " << PROJECT_NAME << "_shared_main（由 kmcmake 驱动）===\n";
+
+    // 调用实体库 foo 的逻辑
+    std::cout << "\n1. 调用 myproject::foo():\n";
+    myproject::foo();  // 在 foo.cc 中实现
+
+    // 使用接口库 api 的功能
+    std::cout << "\n2. 使用 myproject::api 功能:\n";
+    myproject::api::print_version();  // 示例 API（在 api.h 中实现）
+    myproject::api::greet("二进制文件用户");
+
+    std::cout << "\n=== 执行成功完成 ===\n";
+    return 0;
+}
+```
+
+### 补充 `api.h`（接口库实现）
+确保 `kmcmake_cc_interface` 对应的 `api.h` 包含 `main.cc` 中调用的声明函数：
+```cpp title="myproject/myproject/api.h"
+#ifndef MYPROJECT_API_H
+#define MYPROJECT_API_H
+
+#include <string>
+#include <iostream>
+
+namespace myproject::api {
+    // 示例版本信息（仅接口，无需 .cc 文件）
+    inline void print_version() {
+        std::cout << "API 版本：1.0.0（仅头文件接口）\n";
+    }
+
+    // 示例问候函数
+    inline void greet(const std::string& name) {
+        std::cout << "你好，" << name << "！这是来自 myproject::api 的公共 API。\n";
+    }
+}  // namespace myproject::api
+
+#endif  // MYPROJECT_API_H
+```
+
+## 步骤 3：构建二进制文件（从项目根目录）
+在 `myproject` 根目录执行构建命令——kmcmake 会自动编译二进制文件、解析依赖，并链接 `foo` 库和 `api` 接口：
+
+```bash
+cd myproject  # 确保处于项目根目录
+cmake --build build  # 一步构建所有库和二进制文件
+```
+
+### 验证二进制文件存在
+检查构建目录中的可执行文件（遵循 `[命名空间]_[名称]` 命名规则）：
+- Linux/macOS：`build/myproject/myproject_shared_main`
+- Windows：`build/myproject/Debug/myproject_shared_main.exe`（Debug 模式）/ `Release/`（Release 模式）
+
+## 步骤 4：本地运行二进制文件
+直接测试可执行文件，确认其正确链接库和接口：
+
+```bash
+# Linux/macOS
+./build/myproject/myproject_shared_main
+
+# Windows（命令提示符/PowerShell）
+build\myproject\Debug\myproject_shared_main.exe
+```
+
+### 预期输出
+```
+=== 运行 myproject_shared_main（由 kmcmake 驱动）===
+
+1. 调用 myproject::foo():
+你好，来自 myproject::foo！（在 foo.cc 中实现）
+
+2. 使用 myproject::api 功能:
+API 版本：1.0.0（仅头文件接口）
+你好，二进制文件用户！这是来自 myproject::api 的公共 API。
+
+=== 执行成功完成 ===
+```
+
+## 步骤 5：安装二进制文件并检查
+安装二进制文件（连同库和头文件），验证标准项目结构：
+
+```bash
+cd myproject  # 项目根目录
+cmake --install build --prefix build/installed  # 安装所有 PUBLIC 组件
+```
+
+### 检查已安装的二进制文件
+进入安装目录，二进制文件会位于 `bin/` 目录（可执行文件标准存放路径）：
+```bash
+# Linux/macOS
+cd myproject/build/installed
+ls -l bin/  # 显示 "myproject_shared_main"
+./bin/myproject_shared_main  # 运行已安装的二进制文件
+
+# Windows
+cd myproject\build\installed
+dir bin\  # 显示 "myproject_shared_main.exe"
+bin\myproject_shared_main.exe
+```
+
+### 完整安装结构（符合 C++ 约定）
+`build/installed` 目录现在包含所有 `PUBLIC` 组件，遵循标准 C++ 项目布局：
+```
+build/installed/
+├── bin/                  # 可执行文件（myproject_shared_main）
+├── include/              # 头文件（foo.h、api.h）
+│   └── myproject/        # 命名空间化头文件（来自 NAMESPACE 参数）
+└── lib/                  # 实体库（libmyproject_foo.so/.a）
+```
+
+## 核心总结
+- **`kmcmake_cc_binary` 使用**：与库采用相同的「命名空间为中心」设计——确保项目所有组件命名一致。
+- **依赖管理**：`DEPS` 声明内部库/接口依赖，`LINKS` 用于显式链接（与你的 kmcmake 实现对齐）。
+- **构建与安装流程**：与库完全一致——`cmake --build build`（根目录）+ `cmake --install`——无需学习新命令。
+- **公共二进制文件**：`PUBLIC` 关键字确保可执行文件被安装到 `bin/` 目录，方便用户使用（内部测试用二进制文件可省略该关键字）。
+
+接下来，我们将学习如何自定义二进制文件（如添加命令行参数），或通过 `find_package()` 向其他项目共享你的项目。
