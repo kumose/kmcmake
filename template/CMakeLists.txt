@@ -25,7 +25,7 @@ if(NOT CHANGEME)
 endif ()
 
 string(TIMESTAMP CURRENT_DATE "%Y-%m-%d")
-set(TM_KMCMAKE_VERSION 0.7.0)
+set(TM_KMCMAKE_VERSION 1.0.0)
 
 configure_file(${PROJECT_SOURCE_DIR}/CMakeLists.txt.in ${PROJECT_BINARY_DIR}/CMakeLists.txt @ONLY)
 configure_file(${PROJECT_SOURCE_DIR}/README.md.in ${PROJECT_BINARY_DIR}/README.md @ONLY)

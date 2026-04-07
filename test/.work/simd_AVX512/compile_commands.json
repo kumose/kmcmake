@@ -1,0 +1,38 @@
+[
+{
+  "directory": "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512/kmcmake_demo",
+  "command": "/usr/bin/c++ -D_GLIBCXX_USE_CXX11_ABI=1 -isystem /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo -isystem /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512 -O3 -DNDEBUG -std=gnu++17 -fPIC -Wall -Wextra -Wno-cast-qual -Wconversion-null -Wformat-security -Woverlength-strings -Wpointer-arith -Wno-undef -Wunused-local-typedefs -Wunused-result -Wvarargs -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-function -Wwrite-strings -Wclass-memaccess -Wno-sign-compare -DNOMINMAX -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4 -msse4.2 -mavx -mavx2 -mbmi -mbmi2 -mfma -mmovbe -mavx512f -maes -o CMakeFiles/foo_OBJECT.dir/foo.cc.o -c /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake_demo/foo.cc",
+  "file": "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake_demo/foo.cc",
+  "output": "kmcmake_demo/CMakeFiles/foo_OBJECT.dir/foo.cc.o"
+},
+{
+  "directory": "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512/kmcmake_demo",
+  "command": "/usr/bin/c++ -D_GLIBCXX_USE_CXX11_ABI=1 -isystem /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo -isystem /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512 -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wno-cast-qual -Wconversion-null -Wformat-security -Woverlength-strings -Wpointer-arith -Wno-undef -Wunused-local-typedefs -Wunused-result -Wvarargs -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-function -Wwrite-strings -Wclass-memaccess -Wno-sign-compare -DNOMINMAX -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4 -msse4.2 -mavx -mavx2 -mbmi -mbmi2 -mfma -mmovbe -mavx512f -maes -o CMakeFiles/shared_main.dir/main.cc.o -c /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake_demo/main.cc",
+  "file": "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake_demo/main.cc",
+  "output": "kmcmake_demo/CMakeFiles/shared_main.dir/main.cc.o"
+},
+{
+  "directory": "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512/tests",
+  "command": "/usr/bin/c++ -D_GLIBCXX_USE_CXX11_ABI=1 -isystem /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo -isystem /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512 -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wno-cast-qual -Wconversion-null -Wformat-security -Woverlength-strings -Wpointer-arith -Wno-undef -Wunused-local-typedefs -Wunused-result -Wvarargs -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-function -Wwrite-strings -Wclass-memaccess -Wno-sign-compare -DNOMINMAX -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4 -msse4.2 -mavx -mavx2 -mbmi -mbmi2 -mfma -mmovbe -mavx512f -maes -o CMakeFiles/base_raw_test.dir/raw_test.cc.o -c /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/raw_test.cc",
+  "file": "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/raw_test.cc",
+  "output": "tests/CMakeFiles/base_raw_test.dir/raw_test.cc.o"
+},
+{
+  "directory": "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512/tests",
+  "command": "/usr/bin/c++ -D_GLIBCXX_USE_CXX11_ABI=1 -isystem /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo -isystem /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512 -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wno-cast-qual -Wconversion-null -Wformat-security -Woverlength-strings -Wpointer-arith -Wno-undef -Wunused-local-typedefs -Wunused-result -Wvarargs -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-function -Wwrite-strings -Wclass-memaccess -Wno-sign-compare -DNOMINMAX -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4 -msse4.2 -mavx -mavx2 -mbmi -mbmi2 -mfma -mmovbe -mavx512f -maes -o CMakeFiles/base_pass_test.dir/pass_test.cc.o -c /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/pass_test.cc",
+  "file": "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/pass_test.cc",
+  "output": "tests/CMakeFiles/base_pass_test.dir/pass_test.cc.o"
+},
+{
+  "directory": "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512/tests",
+  "command": "/usr/bin/c++ -D_GLIBCXX_USE_CXX11_ABI=1 -isystem /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo -isystem /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512 -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/base_args_test.dir/args_test.cc.o -c /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/args_test.cc",
+  "file": "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/args_test.cc",
+  "output": "tests/CMakeFiles/base_args_test.dir/args_test.cc.o"
+},
+{
+  "directory": "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512/tests",
+  "command": "/usr/bin/c++ -D_GLIBCXX_USE_CXX11_ABI=1 -isystem /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo -isystem /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX512 -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wno-cast-qual -Wconversion-null -Wformat-security -Woverlength-strings -Wpointer-arith -Wno-undef -Wunused-local-typedefs -Wunused-result -Wvarargs -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-function -Wwrite-strings -Wclass-memaccess -Wno-sign-compare -DNOMINMAX -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4 -msse4.2 -mavx -mavx2 -mbmi -mbmi2 -mfma -mmovbe -mavx512f -maes -o CMakeFiles/norun_raw_test.dir/raw_test.cc.o -c /home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/raw_test.cc",
+  "file": "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/tests/raw_test.cc",
+  "output": "tests/CMakeFiles/norun_raw_test.dir/raw_test.cc.o"
+}
+]

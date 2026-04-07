@@ -1,4 +1,4 @@
-# kmcmake v2 快速上手
+# kmcmake v1 快速上手
 
 几分钟内使用 kmcmake 搭建现代 C++ 项目。
 

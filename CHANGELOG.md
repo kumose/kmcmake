@@ -2,6 +2,10 @@
 
 ## 2026-04-07
 
+### Practical Outcome
+- Emphasized UNITY-mode optimization for goose builds. With combined Release + Debug build/install workflow, total install time was reduced from 40+ minutes to around 10 minutes.
+- Other changes in this iteration come from recent real development accumulation and production-facing usage feedback.
+
 ### Build System and Macros
 - Added `kmcmake_cc_proto_object` as a one-step protobuf flow (generate protobuf sources + build object target), and included it in `kmcmake_module`.
 - Updated macro behavior consistency:
@@ -52,7 +56,7 @@
 - Scoped static binary link options (`-static-libgcc`, `-static-libstdc++`) to GCC-only usage.
 
 ### Documentation
-- Rewrote English and Chinese intro to a v2 quick-start model.
+- Rewrote English and Chinese intro to a v1 quick-start model.
 - Updated docs to reflect:
   - runtime SIMD policy and detection flow
   - `kmcmake_cc_proto_object`

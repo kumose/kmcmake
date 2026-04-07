@@ -2,7 +2,7 @@
 
 [中文版](README_CN.md)
 
-[more docs](https://pub.kumose.cc/kmcmake)
+[more docs](https://pub.kumose.cc/kmcmake/)
 
 A standardized C/C++ build system based on CMake for the kumo ecosystem, providing out-of-the-box build templates and toolchain integration to unify the build process across projects in the kumo system.
 
@@ -23,8 +23,8 @@ cmake --install build --prefix your/path
 ### Method 2: One-Click Generation via kmdo (Recommended)
 Execute the following command in the root directory of your project to automatically generate CMake configurations adapted to your project name:
 ```bash
-# Replace you-project with your actual project name
-kmdo kmpkg gencmake you-project
+# Replace values with your actual project name/path
+kmdo kmpkg gencmake -n your-project-name -o your-path
 ```
 
 ## Directory Structure (Core of Template)

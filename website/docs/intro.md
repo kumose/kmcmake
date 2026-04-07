@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# kmcmake v2 Quick Start
+# kmcmake v1 Quick Start
 
 Build a modern C++ project with kmcmake in minutes.
 

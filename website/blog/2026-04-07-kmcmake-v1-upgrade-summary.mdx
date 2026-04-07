@@ -1,0 +1,129 @@
+---
+slug: kmcmake-v1-upgrade-summary
+title: kmcmake v1 upgrade summary
+authors: [jeff]
+tags: [kmcmake, cmake, build-system, simd, protobuf]
+---
+
+# kmcmake v1 upgrade summary
+
+This post summarizes the latest kmcmake upgrade focused on practical engineering throughput, template maintainability, and exported-package usability.
+
+The core outcome is simple: we moved from "works for template users" to "works for template users and downstream package consumers with transparent metadata".
+
+<!-- truncate -->
+
+## 1) Real-world performance result first
+
+The most visible gain came from emphasizing UNITY build mode in real projects (goose build path):
+
+- Combined Release + Debug build/install flow dropped from **40+ minutes** to around **10 minutes**.
+
+This was not a synthetic benchmark. It came from actual day-to-day build workload.
+
+## 2) Runtime SIMD became a single policy input
+
+We introduced a unified runtime SIMD policy:
+
+- `KMCMAKE_RUNTIME_SIMD_LEVEL`
+- Allowed values: `NONE`, `SSE`, `SSE2`, `SSE3`, `SSSE3`, `SSE4_1`, `SSE4_2`, `AVX`, `AVX2`, `AVX512`
+- Default: `AVX2`
+
+And then aligned the build flow so final SIMD arch flags are derived from:
+
+1. Requested runtime level
+2. Actual detected compiler/CPU capability
+
+This removed several old split controls and made behavior predictable for users.
+
+## 3) SIMD detection path was completed
+
+`simd_detect.cmake` now reflects practical expectations better:
+
+- ARM detection path is active
+- AVX512 detection path is active
+
+So the runtime policy and detection output are no longer disconnected.
+
+## 4) Protobuf flow now supports one-step object generation
+
+We added:
+
+- `kmcmake_cc_proto_object`
+
+This wraps the common two-step pattern:
+
+1. Generate `*.pb.cc/*.pb.h`
+2. Build object target
+
+without forcing users to manually stitch both macros each time.
+
+## 5) Exported targets now carry queryable metadata
+
+A recurring issue in package consumption is: after `find_package(...)`, consumers cannot reliably inspect important build metadata.
+
+We addressed this on exported library/binary targets with:
+
+- `KMCMAKE_RUNTIME_SIMD_LEVEL`
+- `KMCMAKE_ARCH_FLAGS`
+- `KMCMAKE_CXX_OPTIONS`
+
+so downstream projects can use `get_target_property(...)` and avoid guesswork.
+
+## 6) Private dependency lookup no longer requires duplicated config edits
+
+To avoid manually duplicating `find_package/find_library` logic inside config templates, we added helper recording:
+
+- `kmcmake_private_find_package(...)`
+- `kmcmake_private_find_library(...)`
+
+These are recorded in deps and auto-injected into generated `*Config.cmake`.
+
+Result: less drift between deps definition and exported package behavior.
+
+## 7) User override entrypoint is now explicit
+
+Template now includes:
+
+- `cmake/<project>_user_option.cmake`
+
+and loads it before deps/cxx/test includes.  
+This gives users a clean override point without touching framework internals.
+
+## 8) Macro consistency and quality-of-life fixes
+
+We also applied a set of consistency upgrades from real usage:
+
+- `cc_test` / `cc_benchmark`: clarified `SKIP` vs `DISABLED`
+- `cc_binary` / `cc_test` / `cc_benchmark`: fixed `EXCLUDE_SYSTEM` wiring
+- `cc_object`: added `UNITY` support
+- template deps: moved to `Threads::Threads` and improved portability details
+
+## 9) Docs and regression assets were updated together
+
+This upgrade included synchronized docs and runnable checks:
+
+- docs refresh across intro/advanced/reference pages
+- `CHANGELOG.md` entry keyed by date
+- `test/run_template_regression.sh`
+- `example/run_usage_demo.sh`
+
+So this is not only a code change set, but also a usage and verification upgrade.
+
+## Closing
+
+This iteration is built from recent real development accumulation, not abstract cleanup.
+
+The guiding principle is unchanged:
+
+- keep kmcmake simple to use
+- keep behavior explicit
+- keep downstream package consumption reliable
+
+If you are using kmcmake in larger codebases, start by adopting:
+
+1. `KMCMAKE_RUNTIME_SIMD_LEVEL`
+2. `kmcmake_cc_proto_object`
+3. target metadata querying in downstream consumers
+
+These three usually provide the fastest return.

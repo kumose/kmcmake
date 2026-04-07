@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/base_pass_test.dir/pass_test.cc.o -o base_pass_test
