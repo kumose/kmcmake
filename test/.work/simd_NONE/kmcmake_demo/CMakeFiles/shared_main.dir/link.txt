@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/shared_main.dir/main.cc.o -o shared_main  -Wl,-rpath,/home/jeff/github/kumose/kmcmake/test/.work/simd_NONE/kmcmake_demo: -lrt -ldl libfoo.so.0.0.5 -lpthread

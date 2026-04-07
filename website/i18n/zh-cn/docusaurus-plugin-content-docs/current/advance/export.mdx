@@ -1,0 +1,150 @@
+# kmcmake 生成的导出配置：`myproject_config.cmake`
+kmcmake 通过标准化的 CMake 导出系统简化项目共享——由 `cmake/myproject_config.cmake.in`（模板文件）和生成的 `myproject_config.cmake`（随项目安装）提供支持。该配置让外部项目可通过 `find_package()` 无缝引用你的 kmcmake 构建库，完全遵循现代 CMake 约定，兼顾一致性与易用性。
+
+## 导出配置的核心用途
+- **标准化发现**：外部项目可通过 `find_package(myproject REQUIRED)` 定位你的库目标（如 `myproject::foo_static`）、包含目录和版本信息。
+- **稳定目标命名**：为静态/动态库暴露一致可预测的目标名（如静态构建用 `myproject::foo_static`，动态构建用 `myproject::foo_shared`）。
+- **依赖透明化**：封装私有依赖（外部项目无需手动链接），同时将公共依赖交给用户控制——平衡便捷性与灵活性。
+- **版本感知**：导出版本元数据，支持版本约束（如 `find_package(myproject 1.2 REQUIRED)`）。
+
+## `myproject_config.cmake.in` 的核心组件
+模板文件 `cmake/myproject_config.cmake.in` 会在项目安装时被 kmcmake 处理，生成最终的 `myproject_config.cmake`（安装到 `lib/cmake/myproject/` 目录）。以下是其关键元素解析：
+
+### 1. 包初始化
+```cmake
+@PACKAGE_INIT@
+```
+- CMake 内置占位符，注入标准包初始化逻辑（如验证安装前缀、设置 `PACKAGE_PREFIX_DIR`）。
+- 开箱即支持 CMake 的 `find_package()` 工作流，无需额外配置。
+
+### 2. 目标导出引入
+```cmake
+include ("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+```
+- 引用 kmcmake 自动生成的 `myprojectTargets.cmake`，该文件定义了实际的库目标（`myproject::foo_static`/`myproject::foo_shared`）及其属性（链接标志、包含路径）。
+- 这是导出配置与库目标的「桥梁」——缺少此步骤，外部项目无法访问你的库。
+
+### 3. 版本元数据导出
+```cmake
+set(@PROJECT_NAME@_VERSION_MAJOR @PROJECT_VERSION_MAJOR@)
+set(@PROJECT_NAME@_VERSION_MINOR @PROJECT_VERSION_MINOR@)
+set(@PROJECT_NAME@_VERSION_PATCH @PROJECT_VERSION_PATCH@)
+set(@PROJECT_NAME@_VERSION @PROJECT_VERSION@)
+```
+- 将项目的语义化版本暴露为 CMake 变量，供外部项目使用。
+- 支持外部项目强制执行版本约束（如 `if(myproject_VERSION VERSION_LESS 1.2) message(FATAL_ERROR "需要 myproject 1.2 及以上版本") endif()`）。
+
+### 4. 包含目录导出
+```cmake
+set(@PROJECT_NAME@_INCLUDE_DIR ${PACKAGE_PREFIX_DIR}/include)
+```
+- 将安装后的包含目录（如 `install_prefix/include`）暴露为 CMake 变量 `myproject_INCLUDE_DIR`。
+- 外部项目可通过该变量手动添加包含路径（不过 kmcmake 目标已自动包含该路径，见下文「使用示例」）。
+
+### 5. 私有依赖封装（核心设计）
+根据项目设计：
+- **私有依赖**：kmcmake 会自动将私有依赖（来自 `KMCMAKE_DEPS_LINK` 或标记为私有的 `PLINKS`）纳入导出目标。外部项目无需手动 `find_package()` 或链接这些依赖——会被透明解析。
+- **公共依赖**：公共依赖不被封装，外部项目需手动链接（通过自身的 `find_package()` 和 `target_link_libraries()`）。这确保用户可灵活管理公共依赖版本。
+
+实现方式：在 `myproject_config.cmake.in` 中直接添加私有依赖的 `find_package()` 调用（或在此引入 `myproject_deps.cmake`），实现依赖封装：
+```cmake
+# 示例：添加私有依赖解析（写入 myproject_config.cmake.in）
+find_package(gflags REQUIRED QUIET)  # 私有依赖——外部项目无需关注
+find_package(spdlog REQUIRED QUIET)  # 另一个私有依赖
+
+# 重新引入目标，确保私有依赖被正确链接
+include ("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+```
+- `QUIET` 选项抑制外部项目的不必要输出。
+- 封装私有依赖查找逻辑——外部用户无需知晓 `gflags`/`spdlog` 即可使用你的库。
+
+## 稳定的目标命名约定
+kmcmake 为导出库强制约定可预测的目标名，确保跨构建一致性：
+| 库类型   | 导出目标名                     | 说明                                      |
+|----------|--------------------------------|-------------------------------------------|
+| 静态库   | `[PROJECT_NAME]::[LIB_NAME]_static` | 例：`myproject::foo_static`（对应 `.a`/`.lib`） |
+| 动态库   | `[PROJECT_NAME]::[LIB_NAME]_shared` | 例：`myproject::foo_shared`（对应 `.so`/`.dll`） |
+
+- **为何分两个目标？** 让外部项目明确选择静态或动态链接（如 `target_link_libraries(my_app PRIVATE myproject::foo_static)`）。
+- **稳定性保障**：目标名由 `NAMESPACE` 和 `NAME` 参数（来自 `kmcmake_cc_library`）推导而来，不会意外变更——对外部项目可靠性至关重要。
+
+## 如何使用导出的项目（外部项目示例）
+你的 kmcmake 项目安装后（通过 `cmake --install build`），外部项目可通过 3 个简单步骤引用它：
+
+### 步骤 1：安装你的 kmcmake 项目
+先将项目安装到标准位置（如 Linux 下的 `/usr/local`、Windows 下的 `C:\Program Files`）：
+```bash
+cd myproject
+cmake --build build
+sudo cmake --install build  # 默认安装到 /usr/local
+```
+
+### 步骤 2：外部项目 CMake 配置
+创建新的外部项目（如 `external_app`），编写如下 `CMakeLists.txt`：
+```cmake title="external_app/CMakeLists.txt"
+cmake_minimum_required(VERSION 3.18)
+project(external_app)
+
+# 1. 查找导出的 kmcmake 项目（使用 myproject_config.cmake）
+find_package(myproject 1.0 REQUIRED)  # 支持版本约束
+
+# 2. 创建可执行文件并链接你的库
+add_executable(external_app main.cc)
+
+# 链接导出目标（静态或动态，二选一）
+target_link_libraries(external_app PRIVATE myproject::foo_static)
+# 或 target_link_libraries(external_app PRIVATE myproject::foo_shared)
+
+# 3. 无需手动添加包含目录——kmcmake 目标已自动包含！
+```
+
+### 步骤 3：外部项目代码（`main.cc`）
+```cpp title="external_app/main.cc"
+#include <myproject/foo.h>  // 包含你的库头文件（kmcmake 自动设置包含路径）
+#include <iostream>
+
+int main() {
+    std::cout << "从外部项目使用 myproject::foo！\n";
+    myproject::foo();  // 调用导出库的函数
+    return 0;
+}
+```
+
+### 步骤 4：构建外部项目
+```bash
+cd external_app
+mkdir build && cd build
+cmake ..  # CMake 自动通过 myproject_config.cmake 找到 myproject
+cmake --build build
+./external_app  # 运行链接了你的 kmcmake 库的应用
+```
+
+### 预期输出
+```
+从外部项目使用 myproject::foo！
+你好，来自 myproject::foo！  # 来自你的 kmcmake 库的输出
+```
+
+## 关键最佳实践
+1. **切勿修改生成文件**：  
+   `myproject_config.cmake` 和 `myprojectTargets.cmake` 是安装时自动生成的。如需自定义，务必编辑 `cmake/` 目录下的 `myproject_config.cmake.in` 模板——切勿直接修改生成文件。
+
+2. **封装私有依赖**：  
+   在 `myproject_config.cmake.in` 中添加私有依赖的 `find_package()` 调用（如前文示例），避免让外部用户处理你的内部依赖。
+
+3. **文档化公共依赖**：  
+   在项目 README 中明确说明公共依赖——外部用户需手动链接这些依赖（如「本项目公共 API 加密依赖 `OpenSSL`，请通过 `apt-get install libssl-dev` 安装」）。
+
+4. **测试导出目标**：  
+   务必通过外部项目测试导出功能，确保：
+   - `find_package()` 无需额外配置即可生效。
+   - 目标链接正常（私有依赖无符号缺失）。
+   - 包含路径自动解析。
+
+## 核心设计理念
+kmcmake 的导出系统遵循「标准化、低摩擦」原则：
+- 贴合现代 CMake 约定（基于目标、兼容 `find_package()`），外部用户无需学习 kmcmake 专属逻辑。
+- 分离私有/公共依赖：封装私有依赖提升便捷性，公共依赖交给用户控制保证灵活性。
+- 强制稳定目标命名，避免版本迭代时破坏外部项目。
+
+该设计让你的 kmcmake 项目像主流 C++ 库（如 `spdlog`、`gflags`）一样易于复用，同时保留 kmcmake 自身「低冗余模板」的核心优势。

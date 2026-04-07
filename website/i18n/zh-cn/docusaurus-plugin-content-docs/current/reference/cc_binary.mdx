@@ -1,0 +1,252 @@
+# `kmcmake_cc_binary`：极简模板高效构建 C++ 可执行文件
+`kmcmake_cc_binary` 是 kmcmake 专为定义 C++ 可执行目标设计的宏——旨在消除原生 CMake 中重复繁琐的 `add_executable` 相关模板代码，同时保留对编译、链接和部署的完全控制。它与 `kmcmake_cc_library` 无缝对齐（共享一致的参数命名），并原生集成 kmcmake 核心工作流（如编译器标志管理、依赖解析、系统安装）。
+
+无论是轻量级命令行工具还是大型应用程序，该宏都能通过合理默认值和清晰易懂的语法，简化可执行文件配置流程。
+
+## 核心特性概览
+- **减少模板代码**：用单个声明式函数替代数十行冗长的原生 CMake 代码。
+- **语法统一**：与 `kmcmake_cc_library` 共享参数名（如 `SOURCES`、`LINKS`、`INCLUDES`），学习成本低，工作流连贯。
+- **精细控制**：支持目标专属的编译器标志、预处理器定义、包含路径和依赖项。
+- **开箱即支持安装**：通过 `PUBLIC` 标志自动生成公共可执行文件的标准安装规则。
+- **IDE 友好**：自动将项目源目录/二进制目录注入包含路径，头文件解析无需手动配置路径。
+- **跨平台兼容**：默认处理操作系统专属的可执行文件命名（如 Windows 下的 `.exe`）和安装路径。
+
+## 完整语法与参数说明
+宏采用清晰的键值对结构，可选参数提供灵活配置。**必填**参数仅为 `NAME`（可执行文件名）和 `SOURCES`（至少一个源文件）。
+
+```cmake
+kmcmake_cc_binary(
+    # 可选标志（布尔型：存在即启用对应行为）
+    PUBLIC                # 标记为公共可执行文件（安装到系统；默认：内部使用）
+    EXCLUDE_SYSTEM        # 禁用包含目录的 CMake "SYSTEM" 标志（默认会抑制系统头文件警告）
+
+    # 必选标识符
+    NAME <binary_name>    # 可执行文件名（如 "my_app" → 生成 "my_app" 或 "my_app.exe"）
+
+    # 源文件（必填：至少一个 .cc/.cpp/.cu 文件）
+    SOURCES <src1.cc> <src2.cpp> <gpu_kernel.cu> ...  # 可编译源文件（必须包含 int main() 入口）
+
+    # 预处理器定义
+    DEFINES <DEF1=1> <DEF2> <VERSION="${PROJECT_VERSION}"> ...  # 传递给编译器的宏定义
+
+    # 包含目录（均为 PRIVATE：可执行文件不继承包含路径）
+    INCLUDES <dir1> <dir2> ...  # 额外私有包含路径（项目源目录/二进制目录自动添加）
+
+    # 依赖项
+    LINKS <target1> <target2> ...    # 私有链接目标（库、CMake 目标、系统库）
+    DEPS <dep_target1> <dep_target2> ...  # 构建依赖（确保目标在可执行文件前构建）
+
+    # 编译器选项（覆盖 kmcmake 默认的 KMCMAKE_CXX_OPTIONS）
+    COPTS <c_flag1> <c_flag2> ...    # C 编译器标志（用于 .c 源文件）
+    CXXOPTS <cxx_flag1> <cxx_flag2> ...  # C++ 编译器标志（用于 .cc/.cpp 源文件）
+    CUOPTS <cuda_flag1> <cuda_flag2> ...  # CUDA 编译器标志（用于 .cu 源文件）
+)
+```
+
+### 关键参数详情
+| 参数               | 用途与行为                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `PUBLIC`                | 标记可执行文件为「公共」：安装到系统标准 `bindir`（如 Linux 下的 `/usr/local/bin`、Windows 下的 `C:\Program Files\myproject\bin`）。内部工具（不安装）省略此标志。 |
+| `EXCLUDE_SYSTEM`        | 默认情况下，`INCLUDES` 会添加 CMake 的 `SYSTEM` 标志（抑制系统头文件警告）。使用此标志可禁用该行为（如对需要强制警告检查的自定义头文件）。 |
+| `NAME`                  | **必填**：可执行文件核心名称。kmcmake 自动处理操作系统专属后缀（Windows 加 `.exe`，Linux/macOS 无后缀）。 |
+| `SOURCES`               | **必填**：可编译源文件列表（`.cc`、`.cpp`、CUDA 源文件 `.cu`）。必须包含至少一个带 `int main()` 入口的文件。 |
+| `DEFINES`               | 传递给编译器的预处理器宏（如 `ENABLE_LOGGING=1`、`BUILD_TYPE="${CMAKE_BUILD_TYPE}"`）。仅作用于当前可执行文件（无传递继承）。 |
+| `INCLUDES`              | 额外私有包含目录（如 `./ui`、`${PROJECT_SOURCE_DIR}/third_party`）。kmcmake 自动添加项目源目录（`${PROJECT_NAME}_SOURCE_DIR`）和二进制目录（`${PROJECT_NAME}_BINARY_DIR`），无需手动指定。 |
+| `LINKS`                 | 私有链接目标：需链接的库或 CMake 目标（如 `myproject::foo`、`spdlog::spdlog`、`Threads::Threads`、数学库 `-lm`）。可执行文件从不传递依赖，因此所有链接均为私有。 |
+| `DEPS`                  | 构建依赖：确保指定目标在可执行文件前构建（如生成代码目标、项目库、Protobuf 编译器）。避免因构建顺序错误导致的「文件未找到」问题。 |
+| `COPTS`/`CXXOPTS`/`CUOPTS` | 目标专属编译器标志，覆盖 kmcmake 全局 `KMCMAKE_CXX_OPTIONS`（来自 `myproject_cxx_config.cmake`）。用于可执行文件专属优化（如 `-O3`）、调试符号（如 `-g`）或警告配置。 |
+
+## 关键默认行为
+kmcmake 提供合理默认值以减少配置工作量，同时遵循现代 CMake 最佳实践：
+1. **包含路径**：自动添加：
+   - 构建时路径：`${PROJECT_NAME}_SOURCE_DIR`（项目根目录）和 `${PROJECT_NAME}_BINARY_DIR`（构建目录），支持无缝包含项目头文件（如 `#include "myproject/foo.h"` 或 `#include "version.h"`）。
+   - 安装时路径：`${CMAKE_INSTALL_INCLUDEDIR}`，兼容已安装头文件。
+2. **编译器标志**：默认继承全局 `KMCMAKE_CXX_OPTIONS`（如跨编译器警告、C++ 标准），除非被 `CXXOPTS`/`COPTS`/`CUOPTS` 覆盖。
+3. **链接规则**：`LINKS` 中的所有目标均按 `PRIVATE` 模式链接（可执行文件的标准行为——依赖不传递给其他目标）。
+4. **安装规则**：公共可执行文件（带 `PUBLIC` 标志）安装到 `${CMAKE_INSTALL_BINDIR}`（符合 FHS 和 Windows 标准）。
+5. **CUDA 支持**：提供 `CUOPTS` 时自动处理 `.cu` 源文件（集成 CMake 的 CUDA 语言支持）。
+6. **位置无关代码（PIC）**：默认启用，确保与共享库依赖兼容。
+
+## 实用使用示例
+以下是生产级示例，覆盖 `kmcmake_cc_binary` 的常见使用场景。
+
+### 示例 1：基础内部工具（不安装）
+定义轻量级内部工具（如构建辅助工具或测试运行器），链接项目库：
+```cmake
+# myproject/tools/CMakeLists.txt
+kmcmake_cc_binary(
+    NAME config_validator  # 可执行文件名：config_validator
+    SOURCES
+        main.cc            # 入口文件（int main()）
+        validator_logic.cc # 核心逻辑文件
+    DEFINES
+        ENABLE_DEBUG_CHECKS=1  # 调试构建中启用额外校验
+        TOOL_VERSION="${PROJECT_VERSION}"  # 注入项目版本
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}/include  # 工具专属头文件目录
+    LINKS
+        myproject::core_static  # 链接静态项目库（可移植）
+        gflags::gflags          # 链接第三方命令行参数库
+        Threads::Threads        # 链接系统线程库
+    DEPS
+        myproject::core  # 确保核心库先构建
+)
+```
+
+#### 结果：
+- 在构建目录生成 `config_validator`（Linux/macOS）或 `config_validator.exe`（Windows）。
+- 支持直接包含项目头文件（如 `#include "myproject/core.h"`）和工具专属头文件（如 `#include "validator.h"`）。
+- 链接静态核心库，无运行时依赖。
+- 不安装（无 `PUBLIC` 标志）——仅在项目构建树内可用。
+
+### 示例 2：公共终端用户应用（需安装）
+定义面向用户的公共应用，安装到系统并链接共享库：
+```cmake
+# myproject/app/CMakeLists.txt
+kmcmake_cc_binary(
+    PUBLIC  # 标记为公共——安装到 /usr/local/bin 或对应目录
+    NAME photo_processor  # 可执行文件名：photo_processor
+    SOURCES
+        main.cc
+        image_loader.cc
+        filters/denoise.cc  # 嵌套源文件（支持相对路径）
+        filters/sharpen.cc
+    DEFINES
+        USE_OPENCV=1  # 启用 OpenCV 集成
+        MAX_THREADS=8
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}/filters  # 滤镜头文件目录
+        ${OpenCV_INCLUDE_DIRS}               # 第三方 OpenCV 包含路径（来自 myproject_deps.cmake）
+    LINKS
+        myproject::image_utils  # 链接项目共享库
+        OpenCV::Core            # 链接第三方 OpenCV 核心库
+        OpenCV::ImgProc         # 链接 OpenCV 图像处理库
+        spdlog::spdlog          # 链接日志库
+    CXXOPTS
+        "-O3"  # 覆盖默认优化级别，提升性能
+        "-ffast-math"
+    DEPS
+        myproject::image_utils  # 确保图像工具库先构建
+)
+```
+
+#### 结果：
+- 生成 `photo_processor`，执行 `cmake --install build` 时安装到 `${CMAKE_INSTALL_BINDIR}`（如 `/usr/local/bin`）。
+- 链接共享库，减小可执行文件体积并支持动态依赖管理。
+- 通过 `CXXOPTS` 覆盖全局编译器标志，启用性能优化。
+- 支持嵌套头文件包含（如 `#include "denoise.h"`）。
+
+### 示例 3：CUDA 加速可执行文件
+定义含 CUDA 源文件的可执行文件（如 GPU 加速计算程序）：
+```cmake
+# myproject/gpu_app/CMakeLists.txt
+kmcmake_cc_binary(
+    NAME tensor_multiply  # CUDA 加速可执行文件名
+    SOURCES
+        main.cc            # CPU 入口文件
+        gpu_kernel.cu      # CUDA 内核（GPU 代码）
+    DEFINES
+        CUDA_ARCH=75  # 目标 CUDA 架构（sm_75）
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}/cuda_includes  # CUDA 专属头文件目录
+    LINKS
+        myproject::gpu_core  # 项目 CUDA 辅助库
+        CUDA::cudart         # CUDA 运行时库
+        CUDA::cublas         # CUDA BLAS 库
+    CUOPTS
+        "-arch=sm_75"        # 目标特定 CUDA 架构
+        "-lineinfo"           # 启用行号信息（用于性能分析）
+        "--expt-relaxed-constexpr"  # CUDA 语言扩展
+    DEPS
+        CUDA::cudart  # 确保 CUDA 运行时就绪
+)
+```
+
+#### 结果：
+- 用 CUDA 专属标志（`CUOPTS`）编译 `gpu_kernel.cu`。
+- 链接 CUDA 运行时（`cudart`）和 BLAS（`cublas`）库。
+- 通过 `CUDA_ARCH` 宏启用 CUDA 优化逻辑。
+- 无缝集成 CMake 的 CUDA 语言支持，无需额外配置。
+
+## 构建与运行可执行文件
+使用 kmcmake 标准构建流程，无需特殊命令：
+```bash
+# 1. 配置项目（使用预设保证一致性）
+cmake --preset default
+
+# 2. 构建可执行文件（目标名与 "NAME" 参数一致）
+cmake --build build --target photo_processor
+
+# 3. 运行可执行文件（Linux/macOS）
+./build/myproject/app/photo_processor --input image.jpg --output processed.jpg
+
+# 3. 运行可执行文件（Windows，Debug 构建）
+build\myproject\app\Debug\photo_processor.exe --input image.jpg --output processed.jpg
+
+# 4. 安装公共可执行文件（Linux/macOS 需 sudo）
+sudo cmake --install build
+
+# 5. 运行已安装的可执行文件（仅公共目标）
+photo_processor --version
+```
+
+## 关键最佳实践
+1. **谨慎使用 `PUBLIC`**：仅将面向终端用户的可执行文件标记为 `PUBLIC`。内部工具（如构建辅助、测试运行器）应省略 `PUBLIC`，避免污染系统路径。
+2. **链接目标而非原始库**：优先使用 CMake 目标（如 `Threads::Threads`、`OpenCV::Core`）而非原始库路径（如 `-lpthread`、`-lopencv_core`）——kmcmake 自动处理传递依赖和路径解析。
+3. **利用项目元数据**：将 `PROJECT_VERSION`、`PROJECT_NAME` 或 `CMAKE_BUILD_TYPE` 注入 `DEFINES`，用于版本控制、品牌标识或条件逻辑（如 `--version` 标志）。
+4. **最小化 `INCLUDES` 配置**：依赖 kmcmake 自动添加的项目源目录/二进制目录包含项目头文件。仅为可执行文件专属路径（如 `filters/`）或非 CMake 管理的第三方库添加 `INCLUDES`。
+5. **谨慎覆盖标志**：仅在需要可执行文件专属优化或警告时使用 `CXXOPTS`/`COPTS`。优先使用 kmcmake 全局 `KMCMAKE_CXX_OPTIONS`（来自 `myproject_cxx_config.cmake`），保证项目标志一致性。
+6. **静态链接提升可移植性**：分发工具时，链接静态库（如 `myproject::core_static`），消除运行时依赖问题。
+
+## 为何该宏优于原生 CMake
+原生 CMake 需编写重复且易出错的代码才能实现 `kmcmake_cc_binary` 几行代码的功能。例如，上述「公共应用」示例在原生 CMake 中需约 40 行代码：
+```cmake
+# 原生 CMake 等效代码（冗长且易出错）
+add_executable(photo_processor
+    main.cc
+    image_loader.cc
+    filters/denoise.cc
+    filters/sharpen.cc
+)
+
+target_compile_definitions(photo_processor PUBLIC
+    USE_OPENCV=1
+    MAX_THREADS=8
+)
+
+target_include_directories(photo_processor PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/filters
+    ${OpenCV_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}  # 手动添加项目源目录
+    ${PROJECT_BINARY_DIR}  # 手动添加项目二进制目录
+)
+
+target_link_libraries(photo_processor PRIVATE
+    myproject::image_utils
+    OpenCV::Core
+    OpenCV::ImgProc
+    spdlog::spdlog
+)
+
+target_compile_options(photo_processor PRIVATE
+    "-O3"
+    "-ffast-math"
+)
+
+add_dependencies(photo_processor myproject::image_utils)
+
+install(TARGETS photo_processor
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+```
+
+`kmcmake_cc_binary` 将这些代码浓缩为单个易读的代码块——消除模板代码、减少人为错误，并确保遵循最佳实践（如自动添加包含路径）。
+
+## 最终说明
+- **参数一致性**：与 `kmcmake_cc_library` 共享语法，降低认知负担——学会一个宏，即可无缝使用两个核心功能。
+- **未解析参数**：宏不会警告未识别参数（与 `kmcmake_cc_library` 不同），需仔细检查参数名（如 `LINK` → `LINKS`、`DEFINE` → `DEFINES`），避免静默失败。
+- **可扩展性**：兼容原生 CMake 函数——调用宏后可按需扩展可执行目标（如用 `set_target_properties()` 设置自定义输出目录、`add_custom_command()` 添加构建后步骤）。
+- **跨平台支持**：自动处理 Windows 专属可执行文件后缀（`.exe`）和安装路径（如 `CMAKE_INSTALL_BINDIR` 在 Windows 映射为 `bin` 目录）。
+
+`kmcmake_cc_binary` 是 kmcmake 可执行文件构建系统的核心——简化配置、保证一致性，让你专注于编写代码而非 CMake 模板。
+它可从小型工具扩展到大型跨平台应用，且与 kmcmake 其他核心宏（如 `kmcmake_cc_library`、`kmcmake_cc_object`）无缝集成。

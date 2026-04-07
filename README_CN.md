@@ -3,7 +3,7 @@
 [English](README.md)
 
 
-[more docs](https://pub.kumose.cc/kmcmake)
+[more docs](https://pub.kumose.cc/kmcmake/)
 
 一款面向 kumo 生态的标准化 C/C++ 构建系统，基于 CMake 打造，提供开箱即用的构建模板与工具链集成能力，统一 kumo 体系内各项目的构建流程。
 
@@ -24,8 +24,8 @@ cmake --install build --prefix your/path
 ### 方式二：通过 kmdo 一键生成（推荐）
 在项目根目录执行以下命令，自动生成适配项目名称的 CMake 配置：
 ```bash
-# 将 you-project 替换为你的实际项目名称
-kmdo kmpkg gencmake you-project
+# 将参数替换为你的项目名称和目标路径
+kmdo kmpkg gencmake -n your-project-name -o your-path
 ```
 
 ## 目录结构（模板核心）

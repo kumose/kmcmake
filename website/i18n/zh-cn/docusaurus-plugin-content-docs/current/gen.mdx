@@ -1,0 +1,122 @@
+# kmcmake 生成项目概览：结构与核心目录
+使用 kmcmake 初始化项目后，会自动生成一套**生产级标准化目录结构**——兼顾「约定优于配置」的便捷性与实际 C++ 开发的灵活性。每个目录都有明确的设计用途，确保项目从小型工具扩展到大型多组件系统时，依然保持整洁有序。
+
+以下是生成的完整项目树解析，以及各核心目录的作用（贴合 kmcmake 简化工程流程的设计理念）。
+
+## 完整项目树回顾
+```bash
+myproject/
+├── benchmark/          # 性能基准测试
+├── cmake/              # 用户自定义 CMake 配置
+├── examples/           # 使用示例与场景演示
+├── kmcmake/            # kmcmake 核心框架（请勿修改）
+├── myproject/          # 核心业务逻辑
+├── tests/              # 单元测试/集成测试
+├── CMakeLists.txt      # 项目根目录 CMake 配置
+├── CMakePresets.json   # 预定义构建预设（跨平台）
+├── LICENSE             # 项目许可证
+├── README.md/CN.md     # 文档（中英文）
+└── [Packaging/Release] # PyPI/RPM/DEB 分发脚本
+```
+
+## 核心目录详解
+
+### 1. `kmcmake/` – 框架核心（请勿修改）
+kmcmake 框架的**核心所在**——包含所有内置 CMake 模块、工具和实用程序，是项目构建系统的动力源泉。该目录由 kmcmake 自主管理，修改其内容会破坏与后续框架更新的兼容性。
+
+关键子目录与文件：
+- `copts/`：编译选项管理（自动生成 C++ 编译标志，保障跨平台兼容性）。
+- `package/`：打包模板（用于 `pkg-config` 的 `.pc` 文件、归档头文件等）。
+- `tools/`：你已使用（及更多）核心 CMake 宏：
+  - 基础构建宏：`kmcmake_cc_library.cmake`/`binary`/`interface`（库、二进制、接口库）。
+  - 扩展宏：`kmcmake_cc_test`（测试）、`kmcmake_cc_benchmark`（基准测试）、`kmcmake_cc_proto`（Protobuf 支持）、`kmcmake_cc_object`（目标文件库）。
+  - 辅助工具：`simd_detect.cmake`（SIMD 指令检测）、`git_commit.cmake`（Git 版本嵌入）。
+- `kmcmake_module.cmake`/`option.cmake`：框架初始化与全局选项配置。
+
+**核心用途**：封装所有构建逻辑、跨平台适配和工程最佳实践——让你无需编写原生 CMake 冗余代码。
+
+### 2. `myproject/` – 核心业务逻辑
+存放**应用核心代码**的目录——在此实现核心功能、库和公共 API。这是你的业务逻辑「工作区」，与构建、配置、测试代码严格分离。
+
+关键内容：
+- 源文件（`.cc`/`.cpp`）：核心实现代码（如 `foo.cc`）。
+- 头文件（`.h`/`.hpp`）：公共 API（如 `api.h`）和内部接口（如 `foo.h`）。
+- 生成式头文件（`.h.in`）：版本控制模板头文件（如 `version.h.in`——通过 CMake 填充项目版本/Git 提交信息）。
+- `CMakeLists.txt`：通过 kmcmake 宏定义库/二进制文件（如 `kmcmake_cc_library`、`kmcmake_cc_binary`）。
+
+**核心用途**：聚焦并规整业务逻辑——与构建、测试、演示代码分离，保持代码整洁。
+
+### 3. `cmake/` – 用户自定义 CMake 配置
+自定义 CMake 逻辑的**安全区域**——无需修改框架核心，即可扩展 kmcmake 的默认行为。该目录用于存放补充 kmcmake 约定的项目专属配置。
+
+关键内容：
+- `myproject_deps.cmake`：管理外部依赖（如链接 `spdlog`/`nlohmann_json` 等第三方库）。
+- `myproject_cxx_config.cmake`：覆盖/扩展 C++ 编译选项（补充 kmcmake 默认的 `copts`）。
+- `myproject_config.cmake.in`：项目导出模板（让其他项目可通过 `find_package(myproject)` 引用）。
+- `myproject_cpack_config.cmake`：自定义打包规则（RPM/DEB/归档文件配置）。
+- `deb/`/`rpm/`：Linux 包脚本（系统集成所需的安装后/卸载前钩子）。
+
+**核心用途**：在不破坏框架结构的前提下，按需定制 kmcmake（依赖管理、打包、编译标志等），保持构建逻辑规整。
+
+### 4. `tests/` – 测试基础设施
+专门用于**代码验证**的目录——kmcmake 通过 `kmcmake_cc_test` 宏无缝集成测试框架（如 Google Test、doctest）。
+
+关键内容：
+- 测试源文件（如 `foo_test.cc`（单元测试）、`foo_doctest.cc`（文档测试）、`args_test.cc`（参数解析测试））。
+- `config.h.in`：测试专属生成头文件（如测试环境变量定义）。
+- `CMakeLists.txt`：通过 `kmcmake_cc_test` 定义测试——kmcmake 自动链接测试库并集成 CTest。
+
+**核心用途**：以最低配置成本支持测试驱动开发（TDD）——执行 `cmake --build build && ctest --test-dir build` 即可运行所有测试。
+
+### 5. `benchmark/` – 性能基准测试
+通过**结构化性能测试**优化代码——由 kmcmake 的 `kmcmake_cc_benchmark` 宏驱动（集成 Google Benchmark 等框架）。
+
+关键内容：
+- 基准测试源文件：性能测试实现（如测量高负载下 `foo()` 的执行时间）。
+- `config.h.in`：基准测试专属配置（如迭代次数、输入数据大小）。
+- `CMakeLists.txt`：通过 `kmcmake_cc_benchmark` 定义基准测试——kmcmake 自动处理测试库链接和输出格式化。
+
+**核心用途**：让性能测试成为项目一等公民——无需额外配置即可开展性能优化。
+
+### 6. `examples/` – 使用示例与教程
+通过**场景化示例**展示项目库/二进制文件的用法。该目录适用于：
+- 演示公共 API（如 `foo_ex.cc` 展示 `myproject::foo` 的使用方式）。
+- 为库用户提供入门代码。
+- 文档化常见使用场景（比纯文本说明更直观）。
+
+关键内容：
+- 示例源文件（如 `foo_ex.cc`）。
+- `CMakeLists.txt`：通过 `kmcmake_cc_binary` 构建示例——自动链接核心 `myproject` 库。
+
+**核心用途**：降低团队或外部用户的API使用门槛。
+
+### 7. 打包与分发文件
+kmcmake 开箱即支持**生产级分发产物**，无需额外配置：
+- `build-pypi-linux.sh`/`release-pypi-linux.sh`：PyPI 打包脚本（适用于 Python 绑定场景）。
+- `pyproject.toml`/`setup.py`：Python 打包配置（将 C++ 构建与 `setuptools` 集成）。
+- `cmake/package/`/`cmake/deb`/`cmake/rpm`：Linux 系统包（DEB/RPM）和 `pkg-config` 支持模板。
+
+**核心用途**：简化项目分发流程——无论是作为系统库、PyPI 包还是源码归档，都可快速发布。
+
+## 生成结构的核心设计原则
+1. **关注点分离**：
+   - 业务逻辑（`myproject/`）↔ 构建配置（`cmake/`）↔ 测试（`tests/`）↔ 演示（`examples/`）。
+   - 框架核心（`kmcmake/`）↔ 用户代码（其他所有目录）→ 无锁定依赖，框架更新更便捷。
+2. **约定优于配置**：
+   - kmcmake 定义了代码、配置、测试的存放位置——你只需专注编写代码，无需操心目录组织。
+3. **可扩展性**：
+   - 适配小型项目（单个 `myproject/main.cc`）和大型项目（`myproject/` 下多库、嵌套子目录）。
+   - 支持通过 `cmake/` 和 kmcmake 扩展宏（Protobuf、SIMD、基准测试）灵活扩展。
+4. **生产级就绪**：
+   - 内置测试、基准测试、打包、版本控制功能——无需后期额外添加。
+
+## 目录使用速览
+1. 核心代码写在 `myproject/` → 在 `myproject/CMakeLists.txt` 中使用 kmcmake 宏。
+2. 测试代码放在 `tests/` → 使用 `kmcmake_cc_test` 定义测试。
+3. 基准测试放在 `benchmark/` → 使用 `kmcmake_cc_benchmark` 定义测试。
+4. 使用示例放在 `examples/` → 使用 `kmcmake_cc_binary` 构建（链接核心库）。
+5. 自定义构建/依赖 → 编辑 `cmake/` 下的文件。
+
+这套结构确保项目具备可维护性、协作性，并贴合 C++ 工程最佳实践——同时借助 kmcmake 消除冗余模板代码。
+
+接下来，我们将深入学习 kmcmake 扩展宏（如 `kmcmake_cc_test`、`kmcmake_cc_benchmark`）的使用，以及如何通过 `cmake/` 目录自定义依赖和编译标志。

@@ -1,0 +1,121 @@
+# kmcmake-Generated `version.h`: Project & Build Environment Metadata Bridge
+kmcmake automatically generates a `version.h` header file (from `myproject/version.h.in` template) during the build process—serving as a **central bridge between your build system and application code**. It encapsulates critical project, compiler, and environment metadata as macros, eliminating "hidden" control logic (e.g., scattered `#define` directives) and making build context explicit.
+
+## Key Purpose of `version.h`
+- **Single Source of Truth**: Aggregates project version, build type, compiler details, and hardware support into one file—no need to manually define these in code.
+- **Explicit Environment Visibility**: Makes build-related metadata (e.g., C++ standard, SIMD support) accessible to your application, avoiding "invisible" assumptions (e.g., "does this build use AVX2?").
+- **No Git Tracking**: The generated `version.h` (not the `.in` template) is excluded from Git (via kmcmake’s default configuration) because it contains machine-specific, build-time data (e.g., local compiler version, hardware features). Tracking it would cause conflicts and misleading diffs.
+
+## Full Metadata Field Explanation
+Below is a detailed breakdown of each macro in `version.h`, mapped directly to the `version.h.in` template:
+
+| Macro                                      | Source/Template Placeholder       | Purpose                                                                 |
+|--------------------------------------------|------------------------------------|-------------------------------------------------------------------------|
+| ### Project Version Metadata               |                                    | Standard semantic versioning for your project                          |
+| `[PROJECT_NAME_UP]_VERSION_MAJOR`          | `@PROJECT_VERSION_MAJOR@`          | Major version (e.g., `1` for `1.2.3`).                                 |
+| `[PROJECT_NAME_UP]_VERSION_MINOR`          | `@PROJECT_VERSION_MINOR@`          | Minor version (e.g., `2` for `1.2.3`).                                 |
+| `[PROJECT_NAME_UP]_VERSION_PATCH`          | `@PROJECT_VERSION_PATCH@`          | Patch version (e.g., `3` for `1.2.3`).                                 |
+| `[PROJECT_NAME_UP]_VERSION`                | Calculated via versions            | Numeric version (e.g., `1002003` for `1.2.3`) for easy comparison.     |
+| `[PROJECT_NAME_UP]_VERSION_STRING`         | `@PROJECT_VERSION@`                | Human-readable version string (e.g., `"1.2.3"`).                       |
+| ### Build Environment Metadata              |                                    | Details about the system where the project was built                   |
+| `[PROJECT_NAME_UP]_BUILD_SYSTEM`           | `@LC_KMCMAKE_PRETTY_NAME@`         | Name of the build OS/distro (e.g., `"Ubuntu 22.04 LTS"`).              |
+| `[PROJECT_NAME_UP]_BUILD_SYSTEM_VERSION`   | `@KMCMAKE_DISTRO_VERSION_ID@`      | Version of the build OS/distro (e.g., `"22.04"`).                      |
+| ### Compiler Metadata                       |                                    | Compiler identity and configuration                                     |
+| `[PROJECT_NAME_UP]_CXX_COMPILER_ID`         | `@CMAKE_CXX_COMPILER_ID@`          | Compiler vendor (e.g., `"GNU"`, `"Clang"`, `"MSVC"`).                  |
+| `[PROJECT_NAME_UP]_CXX_COMPILER_VERSION`   | `@CMAKE_CXX_COMPILER_VERSION@`     | Compiler version (e.g., `"11.4.0"` for GCC 11.4).                      |
+| `[PROJECT_NAME_UP]_CMAKE_CXX_COMPILER_FLAGS` | `@CMAKE_CXX_COMPILER_FLAGS@`     | Base compiler flags from CMake (e.g., `-g -O2` for RelWithDebInfo).    |
+| `[PROJECT_NAME_UP]_CXX_COMPILER_FLAGS`     | `@KMCMAKE_CXX_OPTIONS@`            | Project-specific compiler flags (from `myproject_cxx_config.cmake`).   |
+| `[PROJECT_NAME_UP]_CXX_STANDARD`           | `@CMAKE_CXX_STANDARD@`             | C++ standard in use (e.g., `"17"`—matches kmcmake’s default).          |
+| ### Build Type Metadata                     |                                    | Build configuration (Debug/Release/etc.)                               |
+| `[PROJECT_NAME_UP]_BUILD_TYPE_STRING`      | `@UPPERCASE_BUILD_TYPE@`           | Uppercase build type string (e.g., `"RELEASE"`, `"DEBUG"`).            |
+| `[PROJECT_NAME_UP]_BUILD_[UPPERCASE_BUILD_TYPE]` | Auto-generated       | Build-type-specific macro (e.g., `MYPROJECT_BUILD_RELEASE` for Release builds—use for conditional compilation). |
+| `IS_[PROJECT_NAME_UP]_BUILD_TYPE_DEBUG`    | Conditional on build type          | Boolean (1/0) indicating if this is a Debug build (e.g., `1` for Debug, `0` otherwise). |
+| ### Architecture/SIMD Metadata              |                                    | Runtime SIMD level + detected hardware support                          |
+| `KMCMAKE_RUNTIME_SIMD_LEVEL`               | `@KMCMAKE_RUNTIME_SIMD_LEVEL@`     | Requested runtime SIMD level (`NONE`..`AVX512`, default `AVX2`).       |
+| `KMCMAKE_SIMD_LEVEL_NONE/SSE/AVX/AVX2...` | `@KMCMAKE_SIMD_LEVEL_*_VAL@`       | Build-time effective SIMD switches after applying level + detection.     |
+
+### Notes on Placeholders
+- `[PROJECT_NAME_UP]`: Replaced with your project name in uppercase (e.g., `MYPROJECT` if `PROJECT_NAME=myproject`).
+- `@UPPERCASE_BUILD_TYPE@`: Replaced with the uppercase build type (e.g., `RELEASE`, `DEBUG`) based on `CMAKE_BUILD_TYPE`.
+
+## How kmcmake Generates `version.h`
+1. **Template File**: You edit the `version.h.in` template (in `myproject/`) to add/remove metadata fields (kmcmake provides the full template by default).
+2. **Build-Time Generation**: During `cmake --build build`, kmcmake replaces all `@PLACEHOLDER@` values with real build-time data (e.g., `@PROJECT_VERSION@` → `1.2.3`).
+3. **Output Location**: The generated `version.h` is placed in the build directory (e.g., `build/myproject/version.h`)—your code includes it directly (kmcmake configures include paths automatically).
+
+## Usage Example: Access Metadata in Code
+Include the generated `version.h` in your application to use the macros—no extra configuration needed (kmcmake adds the build directory to include paths):
+
+```cpp title="myproject/main.cc"
+#include "version.h"  // Generated by kmcmake (no need for relative paths)
+#include "api.h"
+#include "foo.h"
+#include <iostream>
+
+int main() {
+    std::cout << "=== " << PROJECT_NAME << " Build Metadata ===\n";
+    // Project version
+    std::cout << "Version: " << MYPROJECT_VERSION_STRING << "\n";
+    // Build environment
+    std::cout << "Build OS: " << MYPROJECT_BUILD_SYSTEM << " (" << MYPROJECT_BUILD_SYSTEM_VERSION << ")\n";
+    // Compiler info
+    std::cout << "Compiler: " << MYPROJECT_CXX_COMPILER_ID << " " << MYPROJECT_CXX_COMPILER_VERSION << "\n";
+    std::cout << "C++ Standard: " << MYPROJECT_CXX_STANDARD << "\n";
+    // Build type
+    std::cout << "Build Type: " << MYPROJECT_BUILD_TYPE_STRING << "\n";
+    // SIMD configuration
+    std::cout << "Runtime SIMD Level: " << KMCMAKE_RUNTIME_SIMD_LEVEL << "\n";
+    std::cout << "SIMD AVX2 Enabled: " << (KMCMAKE_SIMD_LEVEL_AVX2 ? "Yes" : "No") << "\n";
+
+    // Conditional compilation based on build type
+    #if defined(MYPROJECT_BUILD_DEBUG)
+        std::cout << "\n[Debug Mode] Extra logging enabled\n";
+    #endif
+
+    return 0;
+}
+```
+
+### Example Output
+```
+=== myproject Build Metadata ===
+Version: 1.2.3
+Build OS: Ubuntu 22.04 LTS (22.04)
+Compiler: GNU 11.4.0
+C++ Standard: 17
+Build Type: RELEASE
+Runtime SIMD Level: AVX2
+SIMD AVX2 Enabled: Yes
+```
+
+## Critical Best Practices
+1. **Never Track the Generated `version.h`**:  
+   kmcmake excludes the generated `version.h` from Git by default (via `.gitignore`). Tracking it causes:
+   - Conflicts between developers (different compilers/hardware).
+   - Misleading diffs (metadata changes on every build).
+   - Broken builds (machine-specific flags/hardware support).
+
+2. **Edit the `version.h.in` Template (Not `version.h`)**:  
+   All customizations (add/remove metadata fields) must be done in `myproject/version.h.in`—the generated `version.h` is overwritten on every build.
+
+3. **Use Metadata for Explicit Logic**:  
+   Avoid "hidden" assumptions (e.g., "this build always has AVX2"). Instead, use the runtime level and effective SIMD macros:
+   ```cpp
+   #if MYPROJECT_HAVE_RUNTIME_AVX2_SUPPORTED
+       // Use AVX2-optimized code
+       std::cout << "Using AVX2-accelerated function\n";
+       avx2_optimized_foo();
+   #else
+       // Fallback to standard code
+       std::cout << "Using standard function\n";
+       standard_foo();
+   #endif
+   ```
+
+## Key Design Philosophy of `version.h`
+kmcmake’s `version.h` is designed to **eliminate "invisible control flow"**—build-related decisions (e.g., compiler flags, hardware support) are no longer buried in CMake scripts or Makefiles. Instead, they’re exposed as explicit macros in your code, making:
+- Debugging easier (e.g., "why is this build failing? Check `version.h` for compiler flags").
+- Cross-platform support more reliable (e.g., conditional logic for AVX2/SSE4.2).
+- Collaboration smoother (all developers see the same metadata structure, even on different machines).
+
+This aligns with kmcmake’s core principle: "convention over configuration" with full transparency.

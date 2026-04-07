@@ -1,0 +1,227 @@
+# 配置你的第一个库
+让我们深入学习如何用 kmcmake **配置自定义 C++ 库**。我们将基于之前生成的 `myproject` 项目——要么扩展已有的 `foo` 库，要么创建一个全新的库——所有命令均从项目根目录执行。最后，我们会检查安装产物，直观了解配置变更对输出的影响。
+
+## 步骤 1：找到核心 CMake 脚本
+首先，打开项目的 CMake 配置文件（路径清晰，方便后续操作）：  
+`myproject/myproject/CMakeLists.txt`  
+
+你会在第 20 行左右找到模板预定义的 `foo` 库——这是 kmcmake 构建库的核心宏：
+
+```cmake title="myproject/myproject/CMakeLists.txt"
+20 kmcmake_cc_library(
+21         NAMESPACE ${PROJECT_NAME}  # 库的命名空间（避免命名冲突）
+22         NAME foo                   # 库名称（最终产物：libmyproject_foo.so/.a）
+23         SOURCES                    # 库的源文件列表
+24         foo.cc
+25         CXXOPTS                    # C++ 编译选项（复用 kmcmake 标准化配置）
+26         ${KMCMAKE_CXX_OPTIONS}
+27         PLINKS                     # 私有依赖（仅该库内部使用）
+28         ${KMCMAKE_DEPS_LINK}
+29         PUBLIC                     # 标记为公共库：会被安装并导出（供其他项目使用）
+30 )
+```
+
+## 步骤 2：关键参数速查
+| 参数        | 说明                                                                 |
+|-------------|----------------------------------------------------------------------|
+| `NAMESPACE` | 库的前缀（例如 `myproject::foo` 而非仅 `foo`），避免与其他库命名冲突。通常设为 `${PROJECT_NAME}`（顶层 CMakeLists.txt 中定义的项目名）。 |
+| `NAME`      | 库的核心名称。最终产物命名规则：Linux 下为 `lib[命名空间]_[名称].so`，Windows 下为 `[命名空间]_[名称].lib`。 |
+| `SOURCES`   | 库的 `.cc`/`.cpp` 源文件列表。新增功能时，在此添加新文件。             |
+| `CXXOPTS`   | C++ 编译选项（如 `-std=c++17`、`-O2`）。复用 `${KMCMAKE_CXX_OPTIONS}` 可确保与 kmcmake 标准化配置一致。 |
+| `PLINKS`    | 私有依赖：仅该库内部使用、不暴露给库使用者的依赖。需暴露给使用者的依赖请用 `PUBLIC_LINKS`（见步骤 4）。 |
+| `PUBLIC`    | 标记库为公共库：会被安装到目标目录并导出（其他项目可通过 `find_package(kmcmake)` 链接）。若库仅用于项目内部（不对外共享），省略该关键字。 |
+
+## 步骤 3：扩展已有的 `foo` 库
+我们给预构建的 `foo` 库添加自定义逻辑（简单快速）：
+
+### 1. 创建新源文件
+在 `myproject/myproject/` 目录下，创建 `bar.cc` 并写入自定义逻辑（例如一个简单函数）：
+```cpp title="myproject/myproject/bar.cc"
+#include "foo.h"  // 复用已有头文件（或为新 API 创建 bar.h）
+#include <iostream>
+
+namespace myproject {  // 与 NAMESPACE 参数一致
+void bar() {
+    std::cout << "Hello from bar()! 这是你的自定义库逻辑。\n";
+    foo();  // 调用 foo.cc 中的已有函数
+}
+}  // namespace myproject
+```
+
+### 2. 更新 `CMakeLists.txt` 包含新文件
+将 `bar.cc` 添加到 `foo` 库的 `SOURCES` 列表中：
+```cmake title="myproject/myproject/CMakeLists.txt"
+20 kmcmake_cc_library(
+21         NAMESPACE ${PROJECT_NAME}
+22         NAME foo
+23         SOURCES
+24         foo.cc bar.cc  # 在此添加你的新源文件
+25         CXXOPTS
+26         ${KMCMAKE_CXX_OPTIONS}
+27         PLINKS
+28         ${KMCMAKE_DEPS_LINK}
+29         PUBLIC
+30 )
+```
+
+### 3. 从项目根目录构建
+在 **`myproject` 根目录**（而非 `build` 文件夹）执行构建命令：
+```bash
+cd myproject  # 确保处于项目根目录
+cmake --build build  # 直接从根目录构建（复用现有 build 目录）
+```
+
+## 步骤 4：（可选）创建全新的库
+若需将代码拆分到独立库（例如 `foo` 存核心逻辑，`utils` 存工具函数），在已有库配置**之后**添加新的 `kmcmake_cc_library` 块：
+
+### 1. 添加新库配置
+```cmake title="myproject/myproject/CMakeLists.txt"
+# 已有 foo 库（保留）
+kmcmake_cc_library(...)
+
+# 新库："utils"（用于工具函数）
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME utils  # 新库名称
+        SOURCES
+        utils.cc    # 下一步创建该文件
+        CXXOPTS
+        ${KMCMAKE_CXX_OPTIONS}
+        PLINKS
+        ${KMCMAKE_DEPS_LINK}
+        # 内部库省略 "PUBLIC" 关键字
+)
+```
+
+### 2. 创建 `utils.cc` 并链接依赖（如需）
+若 `foo` 需使用 `utils`，将 `utils` 添加到 `foo` 的 `PLINKS`（私有依赖）中：
+```cpp title="myproject/myproject/utils.cc"
+#include "utils.h"
+#include <string>
+
+namespace myproject {
+std::string format_message(const std::string& msg) {
+    return "[工具库] " + msg;
+}
+}  // namespace myproject
+```
+
+更新 `foo` 的 CMake 配置以链接 `utils`：
+```cmake title="myproject/myproject/CMakeLists.txt"
+20 kmcmake_cc_library(
+21         NAMESPACE ${PROJECT_NAME}
+22         NAME foo
+23         SOURCES
+24         foo.cc bar.cc
+25         CXXOPTS
+26         ${KMCMAKE_CXX_OPTIONS}
+27         PLINKS
+28         ${KMCMAKE_DEPS_LINK}
+29         ${PROJECT_NAME}::utils  # 链接新的 "utils" 库（私有）
+30         PUBLIC
+31 )
+```
+
+### 3. 从项目根目录重新构建
+```bash
+cd myproject  # 项目根目录
+cmake --build build  # 带着新库重新构建
+```
+
+## 步骤 5：安装并检查产物
+现在将构建好的库和头文件安装到本地目录，观察配置变更如何体现在安装文件中。
+
+### 1. 执行安装命令（从项目根目录）
+将构建产物安装到 `build/installed`（自定义安装目录）：
+```bash
+cd myproject  # 确保处于项目根目录
+cmake --install build --prefix build/installed  # 安装到 build/installed
+```
+
+### 2. 检查安装文件
+进入 `build/installed` 目录，查看目录结构：
+```bash
+# 进入安装目录
+cd myproject/build/installed
+
+# 列出目录结构
+ls -l  # 会看到 "include/" 和 "lib/" 文件夹
+```
+
+#### 重点检查文件：
+- **`include/myproject/`**：包含头文件（如 `foo.h`、`bar.h`、`utils.h`）。这些文件因库标记为 `PUBLIC` 而被导出。
+- **`lib/`**：包含编译后的库二进制文件：
+  - `libmyproject_foo.so`（Linux）/ `myproject_foo.lib`（Windows）（已扩展 `bar.cc` 逻辑）
+  - `libmyproject_utils.so`（Linux）/ `myproject_utils.lib`（Windows）（若完成步骤 4，会出现这个新创建的库）
+
+### 3. 观察要点：
+- 向 `SOURCES` 添加 `bar.cc` 后，其逻辑会融入 `libmyproject_foo.so`（可通过库大小或测试链接验证）。
+- `PUBLIC` 关键字确保头文件和库被安装（省略 `PUBLIC` 后重新安装，会发现 `lib/` 中缺少该库）。
+- 独立库（如 `utils`）会作为独立二进制文件安装在 `lib/` 中，实现代码的清晰拆分。
+
+## 步骤 6：测试 `PUBLIC` 与非 `PUBLIC` 库的区别
+`PUBLIC` 关键字是控制库是否对外共享的关键。通过简单实验验证差异：
+
+### 1. 修改 `utils` 库，确保不含 `PUBLIC`（步骤 4 已省略，确认即可）
+确保 `utils` 库无 `PUBLIC` 关键字：
+```cmake title="myproject/myproject/CMakeLists.txt"
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME utils
+        SOURCES utils.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        # 无 PUBLIC 关键字 → 仅内部使用
+)
+```
+
+### 2. 重新构建并安装
+```bash
+cd myproject  # 项目根目录
+cmake --build build  # 用更新后的配置重新构建
+cmake --install build --prefix build/installed_no_public  # 安装到新目录
+```
+
+### 3. 对比两个安装目录
+```bash
+# 列出原始安装目录（foo: PUBLIC，utils: 非 PUBLIC）和新安装目录的内容
+ls -l myproject/build/installed/lib/
+ls -l myproject/build/installed_no_public/lib/
+```
+
+#### 关键差异：
+| 场景                     | `build/installed/lib/`（foo: PUBLIC，utils: 非 PUBLIC） | `build/installed_no_public/lib/`（相同配置） |
+|--------------------------|-------------------------------------------------------|------------------------------------------------|
+| `libmyproject_foo.so`    | 存在（标记为 `PUBLIC`，已安装）                        | 存在（无变化）                                |
+| `libmyproject_utils.so`  | 不存在（省略 `PUBLIC` → 仅内部使用）                   | 不存在（保持一致）                            |
+| `include/myproject/`     | 包含 `foo.h`、`bar.h`（来自 PUBLIC 库 foo）            | 包含 `foo.h`、`bar.h`（无变化）                |
+
+### 4. 反向实验（可选）
+给 `utils` 库添加 `PUBLIC` 并重新安装，确认其会被导出：
+```cmake
+kmcmake_cc_library(
+        NAMESPACE ${PROJECT_NAME}
+        NAME utils
+        SOURCES utils.cc
+        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+        PLINKS ${KMCMAKE_DEPS_LINK}
+        PUBLIC  # 现在标记为公共库
+)
+```
+```bash
+cmake --build build
+cmake --install build --prefix build/installed_utils_public
+ls -l myproject/build/installed_utils_public/lib/  # 现在能看到 libmyproject_utils.so 了！
+```
+
+## 核心总结
+- **从根目录构建**：统一使用 `cmake --build build` 从项目根目录构建，确保一致性。
+- **扩展库**：向现有 `kmcmake_cc_library` 块的 `SOURCES` 列表添加新 `.cc` 文件即可。
+- **新建库**：新增 `kmcmake_cc_library` 块（遵循相同参数格式），实现代码模块拆分。
+- **安装验证**：用 `cmake --install build --prefix [路径]` 导出 `PUBLIC` 库和头文件——通过检查输出验证配置是否正确。
+- **`PUBLIC` 与非 `PUBLIC` 区别**：
+  - `PUBLIC`：库和头文件会被安装/导出（供外部项目使用）；
+  - 非 `PUBLIC`：库仅为项目内部构建使用（不安装/不导出）。
+- **依赖管理**：私有依赖用 `PLINKS`（仅内部使用），需暴露给库使用者的依赖用 `PUBLIC_LINKS`。
+
+接下来，我们将学习如何将这些库链接到可执行程序，或通过 `find_package()` 共享给其他项目！

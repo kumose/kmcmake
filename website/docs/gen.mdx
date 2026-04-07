@@ -1,0 +1,124 @@
+# kmcmake-Generated Project Overview: Structure & Core Directories
+
+When you initialize a project with kmcmake, it generates a **production-grade, standardized directory structure**—designed to balance "convention over configuration" with flexibility for real-world C++ development. Every directory has a clear, opinionated purpose, ensuring your project stays organized as it scales from small tools to large multi-component systems.
+
+Below is a complete breakdown of the generated project tree and the role of each core directory (aligned with kmcmake’s design philosophy of streamlining engineering workflows).
+
+## Full Project Tree Recap
+```bash
+myproject/
+├── benchmark/          # Performance benchmarking
+├── cmake/              # User-specific CMake configurations
+├── examples/           # Usage examples & scenario demos
+├── kmcmake/            # kmcmake core framework (DO NOT MODIFY)
+├── myproject/          # Core business logic
+├── tests/              # Unit/integration tests
+├── CMakeLists.txt      # Project root CMake config
+├── CMakePresets.json   # Predefined build presets (cross-platform)
+├── LICENSE             # Project license
+├── README.md/CN.md     # Documentation
+└── [Packaging/Release] # PyPI/RPM/DEB distribution scripts
+```
+
+## Core Directory Breakdown
+
+### 1. `kmcmake/` – Framework Core (DO NOT MODIFY)
+The **heart of the kmcmake framework**—contains all built-in CMake modules, tools, and utilities that power the project’s build system. This directory is managed by kmcmake itself, and modifying its contents will break compatibility with future framework updates.
+
+Key Subdirectories & Files:
+- `copts/`: Compile option management (auto-generated C++ flags, cross-platform compatibility).
+- `package/`: Packaging templates (`.pc` files for `pkg-config`, archive headers).
+- `tools/`: Core CMake macros you’ve already used (and more):
+  - `kmcmake_cc_library.cmake`/`binary`/`interface`: Foundational build macros.
+  - Extended macros: `kmcmake_cc_test` (testing), `kmcmake_cc_benchmark` (benchmarking), `kmcmake_cc_proto` (Protobuf generation), `kmcmake_cc_object` (object libraries), `kmcmake_cc_proto_object` (one-step proto generation + object target).
+  - Helpers: `simd_detect.cmake` (SIMD instruction detection), `git_commit.cmake` (Git version embedding).
+- `kmcmake_module.cmake`/`option.cmake`: Framework initialization & global options.
+
+**Purpose**: Encapsulate all build logic, cross-platform adaptation, and engineering best practices—so you don’t need to write raw CMake boilerplate.
+
+### 2. `myproject/` – Core Business Logic
+The **primary directory for your application code**—where you implement core features, libraries, and public APIs. This is your "workspace" for business logic, isolated from build/config/test code.
+
+Key Contents:
+- Source files (`.cc`/`.cpp`): Core implementation (e.g., `foo.cc`).
+- Header files (`.h`/`.hpp`): Public APIs (e.g., `api.h`) and internal interfaces (e.g., `foo.h`).
+- Generated headers (`.h.in`): Template headers for versioning (e.g., `version.h.in`—populated with project version/Git commit via CMake).
+- `CMakeLists.txt`: kmcmake macro calls to define libraries/binaries (e.g., `kmcmake_cc_library`, `kmcmake_cc_binary`).
+
+**Purpose**: Keep your business logic focused and organized—separated from build, test, and demo code.
+
+### 3. `cmake/` – User-Specific CMake Config
+A **safe space for custom CMake logic**—extend kmcmake’s default behavior without modifying the framework core. This directory is for project-specific configurations that complement kmcmake’s conventions.
+
+Key Contents:
+- `myproject_deps.cmake`: Manage external dependencies (e.g., link third-party libraries like `spdlog`/`nlohmann_json`).
+- `myproject_cxx_config.cmake`: Override/extend C++ compile options (supplement `kmcmake`’s default `copts`).
+- `myproject_user_option.cmake`: Optional user override entrypoint loaded before deps/cxx/test config files.
+- `myproject_config.cmake.in`: CMake config template for exporting your project (so other projects can use `find_package(myproject)`).
+- `myproject_cpack_config.cmake`: Custom packaging rules (RPM/DEB/archive settings).
+- `deb/`/`rpm/`: Linux package scripts (post-install, pre-remove hooks for system integration).
+
+**Purpose**: Customize kmcmake to fit your project’s unique needs (dependencies, packaging, flags) while keeping build logic organized.
+
+### 4. `tests/` – Testing Infrastructure
+Dedicated to **validating your code**—kmcmake integrates seamlessly with testing frameworks (e.g., Google Test, doctest) via the `kmcmake_cc_test` macro.
+
+Key Contents:
+- Test source files (e.g., `foo_test.cc` (unit tests), `foo_doctest.cc` (doctest), `args_test.cc` (argument parsing tests)).
+- `config.h.in`: Test-specific generated headers (e.g., test environment variables).
+- `CMakeLists.txt`: Define tests with `kmcmake_cc_test`—kmcmake automatically links test libraries and integrates with CTest.
+
+**Purpose**: Enforce test-driven development (TDD) with minimal configuration—run all tests via `cmake --build build && ctest --test-dir build`.
+
+### 5. `benchmark/` – Performance Benchmarking
+Optimize your code with **structured performance testing**—powered by kmcmake’s `kmcmake_cc_benchmark` macro (integrates with frameworks like Google Benchmark).
+
+Key Contents:
+- Benchmark source files: Performance test implementations (e.g., measure `foo()` execution time under load).
+- `config.h.in`: Benchmark-specific configuration (e.g., iteration counts, input sizes).
+- `CMakeLists.txt`: Define benchmarks with `kmcmake_cc_benchmark`—kmcmake handles linking benchmark libraries and output formatting.
+
+**Purpose**: Make performance testing a first-class citizen of your project—no extra setup needed.
+
+### 6. `examples/` – Usage Demos & Tutorials
+Showcase how to use your project’s libraries/binaries with **scenario-based examples**. This directory is ideal for:
+- Demonstrating public APIs (e.g., `foo_ex.cc` shows how to use `myproject::foo`).
+- Providing starter code for users of your library.
+- Documenting common use cases (better than plain text docs).
+
+Key Contents:
+- Example source files (e.g., `foo_ex.cc`).
+- `CMakeLists.txt`: Build examples with `kmcmake_cc_binary`—linked to your core `myproject` libraries.
+
+**Purpose**: Lower the barrier to entry for users (or your team) to adopt your project’s APIs.
+
+### 7. Packaging & Release Files
+kmcmake generates **production-ready distribution artifacts** out of the box, with no extra configuration:
+- `build-pypi-linux.sh`/`release-pypi-linux.sh`: PyPI packaging scripts (for Python bindings, if applicable).
+- `pyproject.toml`/`setup.py`: Python packaging config (integrates C++ build with `setuptools`).
+- `cmake/package/`/`cmake/deb`/`cmake/rpm`: Templates for Linux system packages (DEB/RPM) and `pkg-config` support.
+
+**Purpose**: Streamline releasing your project to users—whether as a system library, PyPI package, or source archive.
+
+## Key Design Principles of the Generated Structure
+1. **Separation of Concerns**:
+   - Business logic (`myproject/`) ↔ Build config (`cmake/`) ↔ Tests (`tests/`) ↔ Demos (`examples/`).
+   - Framework core (`kmcmake/`) ↔ User code (everything else) → No lock-in, easy framework updates.
+2. **Convention Over Configuration**:
+   - kmcmake defines where to put code/config/tests—you focus on writing code, not organizing directories.
+3. **Scalability**:
+   - Works for small projects (single `myproject/main.cc`) and large projects (multiple libraries in `myproject/`, nested subdirectories).
+   - Extensible via `cmake/` and kmcmake’s extended macros (Protobuf, SIMD, benchmarking).
+4. **Production-Grade**:
+   - Includes testing, benchmarking, packaging, and versioning out of the box—no need to add these later.
+
+## How to Use the Structure (Quick Recap)
+1. Write core code in `myproject/` → Use kmcmake macros in `myproject/CMakeLists.txt`.
+2. Add tests in `tests/` → Use `kmcmake_cc_test`.
+3. Add benchmarks in `benchmark/` → Use `kmcmake_cc_benchmark`.
+4. Show examples in `examples/` → Use `kmcmake_cc_binary` linked to your core libraries.
+5. Customize build/dependencies → Edit files in `cmake/`.
+
+This structure ensures your project stays maintainable, collaborative, and aligned with C++ engineering best practices—all while leveraging kmcmake’s ability to eliminate boilerplate.
+
+Next, we’ll dive deeper into using the extended kmcmake macros (e.g., `kmcmake_cc_test`, `kmcmake_cc_benchmark`) and customizing dependencies/flags via the `cmake/` directory.

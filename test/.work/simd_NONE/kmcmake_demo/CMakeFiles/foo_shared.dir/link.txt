@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -O3 -DNDEBUG -shared -Wl,-soname,libfoo.so.0 -o libfoo.so.0.0.5 CMakeFiles/foo_OBJECT.dir/foo.cc.o  -lrt -ldl -lpthread

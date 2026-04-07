@@ -1,0 +1,321 @@
+# `kmcmake_cc_proto`: Streamline Protobuf C++ Code Generation with Zero IDE Configuration
+
+`kmcmake_cc_proto` is kmcmake’s dedicated macro for generating C++ source (`*.pb.cc`) and header (`*.pb.h`) files 
+from Protocol Buffers (`*.proto`) definitions. It automates the entire Protobuf workflow—from invoking `protoc`
+ (the Protobuf compiler) to managing include paths and build dependencies—while adhering to a "source directory 
+ output + git-ignored generated files" best practice that makes IDEs recognize project files seamlessly.
+
+Ideal for projects using Protobuf for data serialization (e.g., RPC, storage, cross-service communication), this
+ macro eliminates manual `protoc` calls and CMake custom command boilerplate, while ensuring generated code integrates 
+ flawlessly with kmcmake’s core build system.
+
+## New: One-Step Object Target (`kmcmake_cc_proto_object`)
+
+kmcmake now also provides `kmcmake_cc_proto_object`, which wraps:
+
+1. `kmcmake_cc_proto(...)` for code generation
+2. `kmcmake_cc_object(...)` for object target creation
+
+This is recommended when your usual workflow is "generate proto files + immediately build them as an object library".
+
+```cmake
+set(PROTO_FILES
+    proto/binlog.proto
+    proto/common.proto
+)
+
+kmcmake_cc_proto_object(
+    NAME proto_obj
+    NAMESPACE myproj
+    PROTOS ${PROTO_FILES}
+    OUTDIR ${PROJECT_SOURCE_DIR}
+    CXXOPTS ${KMCMAKE_CXX_OPTIONS}
+)
+```
+
+After this call, you can directly link `myproj::proto_obj` in `kmcmake_cc_library` / `kmcmake_cc_binary`.
+
+
+## Core Features at a Glance
+- **Zero Manual `protoc` Calls**: Automatically invokes the Protobuf compiler (`protoc`) with correct include paths
+    and output flags.
+- **IDE-Friendly**: Generates code directly in the source directory (e.g., alongside `*.proto` files) so IDEs 
+    (CLion, VS Code, Visual Studio) recognize headers/sources without extra configuration.
+- **Git-Ignore Ready**: Generated files (`*.pb.cc`/`*.pb.h`) are excluded from version control (via `.gitignore`), 
+    keeping the repo clean.
+- **Dependency Management**: Ensures `protoc` runs only when `*.proto` files or dependencies change (no redundant 
+    re-generation).
+- **Seamless kmcmake Integration**: Outputs generated file lists (`{NAME}_SRCS`/`{NAME}_HDRS`) that plug directly 
+    into `kmcmake_cc_object`, `kmcmake_cc_library`, or `kmcmake_cc_binary`.
+- **Flexible Include Paths**: Supports project-wide and custom include directories for `protoc` (critical for 
+   nested/imported `*.proto` files).
+
+
+## Full Syntax & Parameter Explanation
+
+The macro uses a declarative syntax with required and optional parameters. It focuses on simplicity while covering all
+common Protobuf code generation needs.
+
+```cmake
+kmcmake_cc_proto(
+    # Optional Flags (boolean—presence enables the behavior)
+    PUBLIC                # Mark generated targets as public (for installed libraries; default: internal)
+    EXCLUDE_SYSTEM        # Disable "SYSTEM" flag for Protobuf include directories (suppresses warnings by default)
+
+    # Required Arguments (must be specified)
+    NAME <proto_target>   # Unique name for the proto generation target (e.g., "proto_obj")—used to export file lists
+    OUTDIR <output_dir>   # Directory to generate *.pb.cc/*.pb.h files (typically ${PROJECT_SOURCE_DIR} for IDE compatibility)
+
+    # List Arguments
+    PROTOS <proto1.proto> <proto2.proto> ...  # List of *.proto files to compile (required—at least one)
+    DEPS <dep1> <dep2> ...                    # Build dependencies (e.g., imported proto targets, protoc itself)
+    INCLUDES <dir1> <dir2> ...                # Custom include directories for protoc (e.g., for imported proto files from third parties)
+)
+```
+
+### Key Parameter Details
+| Parameter               | Purpose & Behavior                                                                 |
+|-------------------------|-----------------------------------------------------------------------------------|
+| `PUBLIC`                | Marks the generated code as part of a public library (relevant if you’re installing the library via `kmcmake_cc_library(PUBLIC)`). Omit for internal-only generated code. |
+| `EXCLUDE_SYSTEM`        | By default, Protobuf’s include directory (`PROTOBUF_INCLUDE_DIRS`) is treated as a "SYSTEM" directory (suppresses compiler warnings). Use this to disable that behavior (e.g., for debugging Protobuf headers). |
+| `NAME`                  | **Required**: Unique identifier for the proto generation target. Exports two variables to the parent scope: <br/> - `${NAME}_SRCS`: List of generated `*.pb.cc` files. <br/> - `${NAME}_HDRS`: List of generated `*.pb.h` files. |
+| `OUTDIR`                | **Required**: Output directory for generated files. The recommended value is `${PROJECT_SOURCE_DIR}` (source root), which places generated files alongside `*.proto` files—ensuring IDEs recognize them without extra configuration. |
+| `PROTOS`                | **Required**: List of `*.proto` files to compile. Supports relative paths (e.g., `proto/common.proto`) and absolute paths. |
+| `DEPS`                  | Build dependencies for the generated code. Use this if your `*.proto` files import other generated proto files (e.g., third-party Protobuf targets) or require other targets to build first. |
+| `INCLUDES`              | Custom include directories for `protoc` (passed as `-I<dir>`). Use this to resolve imported `*.proto` files that are not in the project root (e.g., `third_party/protobuf/include`). |
+
+> Note: `kmcmake_cc_proto` itself is generation-only. `PUBLIC` / `EXCLUDE_SYSTEM` are legacy-compatible parameters and are not the primary control surface for compiled target behavior. Use `kmcmake_cc_proto_object` or explicit `kmcmake_cc_object` / `kmcmake_cc_library` for compile/link/install semantics.
+
+### Critical Dependencies
+- Requires the Protobuf library and `protoc` compiler to be installed (the macro calls `find_package(Protobuf REQUIRED)` internally—fails if Protobuf is not found).
+- Generated C++ code depends on the Protobuf runtime library (`protobuf::libprotobuf`)—you must link this to targets using the generated code.
+
+
+## Best Practice Workflow (As Demonstrated in the Example)
+The macro is designed to work with a specific workflow that balances IDE compatibility, repo cleanliness, and build efficiency:
+
+### 1. Organize `*.proto` Files
+Place `*.proto` files in a dedicated directory (e.g., `proto/`) for clarity:
+```
+project_root/
+├── proto/
+│   ├── common.proto
+│   ├── db.interface.proto
+│   └── ... (other *.proto files)
+├── src/
+├── tests/
+└── CMakeLists.txt
+```
+
+### 2. Git-Ignore Generated Files
+Add generated `*.pb.cc` and `*.pb.h` to `.gitignore` to avoid cluttering the repo:
+```gitignore
+# .gitignore
+# Protobuf generated files
+proto/*.pb.h
+proto/*.pb.cc
+# If using nested proto directories:
+# proto/**/*.pb.h
+# proto/**/*.pb.cc
+```
+
+### 3. Generate Code with `kmcmake_cc_proto`
+Call the macro to generate C++ files from `*.proto` definitions. The example uses `OUTDIR ${PROJECT_SOURCE_DIR}`, which places generated files directly in the same directory as the `*.proto` files (e.g., `proto/common.proto` → `proto/common.pb.h`/`proto/common.pb.cc`).
+
+### 4. Wrap Generated Code in an Object Library
+Use `kmcmake_cc_object` to create a reusable object library from the generated `*.pb.cc` files. This avoids redundant compilation if the generated code is used across multiple targets (libraries/binaries).
+
+### 5. Link the Object Library to Your Targets
+Link the proto object library to your libraries or binaries via `LINKS` (e.g., `kmdb::proto_obj`).
+
+
+## Practical Usage Examples
+Below are production-grade examples covering common Protobuf use cases.
+
+### Example 1: Basic Protobuf Code Generation (As in the Demo)
+Generate code from a list of `*.proto` files and wrap it in an object library:
+```cmake
+# Step 1: Define the list of *.proto files
+set(PROTO_FILES
+    proto/common.proto
+    proto/db.interface.proto
+    proto/expr.proto
+    proto/raft.proto
+)
+
+# Step 2: Generate C++ code from *.proto files
+kmcmake_cc_proto(
+    NAME proto_obj          # Exported variables: proto_obj_SRCS, proto_obj_HDRS
+    OUTDIR ${PROJECT_SOURCE_DIR}  # Generate files in source root (alongside *.proto)
+    PROTOS ${PROTO_FILES}   # List of *.proto files to compile
+    INCLUDES ${PROJECT_SOURCE_DIR}/proto  # Custom include dir for nested imports
+)
+
+# Step 3: Create an object library from generated code (reusable across targets)
+kmcmake_cc_object(
+    NAMESPACE kmdb          # Alias: kmdb::proto_obj
+    NAME proto_obj
+    SOURCES ${proto_obj_SRCS}  # Generated *.pb.cc files
+    CXXOPTS ${KMCMAKE_CXX_OPTIONS}  # Inherit project compiler flags
+)
+
+# Step 4: Link the proto object library to a project library
+kmcmake_cc_library(
+    PUBLIC
+    NAME db_core
+    NAMESPACE kmdb
+    SOURCES src/db_core.cc
+    LINKS
+        kmdb::proto_obj     # Link generated proto object library
+        protobuf::libprotobuf  # Link Protobuf runtime
+)
+```
+
+#### Result:
+- Generates `proto/common.pb.h`, `proto/common.pb.cc`, and similarly for other `*.proto` files.
+- IDEs (CLion, VS Code) automatically recognize the generated headers/sources—no extra configuration needed.
+- The `kmdb::proto_obj` object library is reused across targets, avoiding redundant compilation.
+
+
+### Example 2: Protobuf with Imported Third-Party Protos
+
+If your `*.proto` files import third-party Protobuf definitions (e.g., Google’s `any.proto` or custom third-party protos),
+use `INCLUDES` to specify the third-party include directory:
+```cmake
+# Step 1: Find third-party Protobuf (e.g., Google Protobuf)
+find_package(Protobuf REQUIRED)
+find_package(GoogleProtobufExtra REQUIRED)  # Hypothetical third-party Protobuf package
+
+# Step 2: Define *.proto files (imports third-party protos)
+set(PROTO_FILES
+    proto/extended_db.proto  # Imports "google/protobuf/any.proto" or "third_party/custom.proto"
+)
+
+# Step 3: Generate code with third-party include paths
+kmcmake_cc_proto(
+    NAME extended_proto_obj
+    OUTDIR ${PROJECT_SOURCE_DIR}
+    PROTOS ${PROTO_FILES}
+    INCLUDES
+        ${PROJECT_SOURCE_DIR}/proto
+        ${GoogleProtobufExtra_INCLUDE_DIRS}  # Third-party proto include dir
+    DEPS ${GoogleProtobufExtra_PROTOS}  # Dependencies on third-party proto files
+)
+
+# Step 4: Create object library
+kmcmake_cc_object(
+    NAMESPACE kmdb
+    NAME extended_proto_obj
+    SOURCES ${extended_proto_obj_SRCS}
+    LINKS protobuf::libprotobuf
+)
+```
+
+
+### Example 3: Generate Code for a Binary Target
+Directly use generated code in an executable (no intermediate object library):
+```cmake
+kmcmake_cc_proto(
+    NAME rpc_proto
+    OUTDIR ${PROJECT_SOURCE_DIR}
+    PROTOS proto/rpc.proto
+)
+
+kmcmake_cc_binary(
+    PUBLIC
+    NAME rpc_client
+    SOURCES src/rpc_client.cc
+    LINKS
+        ${rpc_proto_SRCS}  # Directly link generated *.pb.cc files (for simple use cases)
+        protobuf::libprotobuf
+    INCLUDES ${PROJECT_SOURCE_DIR}/proto  # Resolve generated headers
+)
+```
+
+
+## Critical Best Practices
+1. **Generate in Source Directory**: Use `OUTDIR ${PROJECT_SOURCE_DIR}` to place generated files alongside `*.proto` 
+    files—this is the key to IDE compatibility (no extra `include_directories` or IDE configuration needed).
+2. **Git-Ignore Generated Files**: Always exclude `*.pb.cc`/`*.pb.h` from version control—generated code is a build 
+     artifact, not source code.
+3. **Wrap in Object Library**: For generated code used across multiple targets (libraries/binaries), use 
+     `kmcmake_cc_object` to avoid redundant compilation.
+4. **Link Protobuf Runtime**: Generated code depends on `protobuf::libprotobuf`—always link this to targets using 
+     the generated code (the macro does not handle this automatically).
+5. **Handle Imports with `INCLUDES`**: If your `*.proto` files import other protos (local or third-party), 
+     use `INCLUDES` to specify the directories containing the imported `.proto` files.
+6. **Avoid Hardcoded Paths**: Use project variables (e.g., `${PROJECT_SOURCE_DIR}`, `${CMAKE_CURRENT_SOURCE_DIR}`) 
+     instead of absolute paths to keep the configuration portable.
+
+
+## Why This Macro Beats Raw CMake
+Raw CMake requires writing error-prone custom commands and file management for Protobuf code generation. For example, the basic example above would require ~50 lines of raw CMake:
+```cmake
+# Raw CMake Equivalent (Verbose & Error-Prone)
+find_package(Protobuf REQUIRED)
+
+set(PROTO_FILES
+    proto/common.proto
+    proto/db.interface.proto
+)
+
+set(PROTO_SRCS "")
+set(PROTO_HDRS "")
+
+foreach (PROTO IN LISTS PROTO_FILES)
+    get_filename_component(PROTO_ABS ${PROTO} ABSOLUTE)
+    get_filename_component(PROTO_NAME_WE ${PROTO} NAME_WE)
+    get_filename_component(PROTO_DIR ${PROTO_ABS} DIRECTORY)
+
+    set(HDR ${PROTO_DIR}/${PROTO_NAME_WE}.pb.h)
+    set(SRC ${PROTO_DIR}/${PROTO_NAME_WE}.pb.cc)
+
+    list(APPEND PROTO_SRCS ${SRC})
+    list(APPEND PROTO_HDRS ${HDR})
+
+    add_custom_command(
+        OUTPUT ${HDR} ${SRC}
+        COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+            -I${PROTOBUF_INCLUDE_DIRS}
+            -I${PROJECT_SOURCE_DIR}
+            --cpp_out=${PROJECT_SOURCE_DIR}
+            ${PROTO_ABS}
+        DEPENDS ${PROTO_ABS}
+    )
+endforeach ()
+
+add_library(proto_obj OBJECT ${PROTO_SRCS})
+target_compile_options(proto_obj PRIVATE ${KMCMAKE_CXX_OPTIONS})
+add_library(kmdb::proto_obj ALIAS proto_obj)
+
+# Plus linking to Protobuf runtime and integrating with other targets!
+```
+
+`kmcmake_cc_proto` condenses this into a few lines of declarative code—eliminating boilerplate, reducing human 
+ error, and ensuring consistency with kmcmake’s core workflows. Additionally:
+- Automatically handles include path resolution for project and custom directories.
+- Exports file lists (`{NAME}_SRCS`/`{NAME}_HDRS`) for easy integration with other kmcmake macros.
+- Ensures generated files are only re-built when `*.proto` files or dependencies change.
+
+
+## Final Notes
+- **Protobuf Version Compatibility**: The macro uses CMake’s `FindProtobuf` module, which supports Protobuf 3.x and 
+    newer. Ensure your `*.proto` files are compatible with the installed Protobuf version.
+- **Generated Code Warnings**: Generated Protobuf code may produce compiler warnings. To suppress them, add `-Wno-all` 
+    or target-specific warning flags to the object library’s `CXXOPTS`:
+  ```cmake
+  kmcmake_cc_object(
+      NAMESPACE kmdb
+      NAME proto_obj
+      SOURCES ${proto_obj_SRCS}
+      CXXOPTS ${KMCMAKE_CXX_OPTIONS} -Wno-unused-parameter -Wno-sign-compare
+  )
+  ```
+- **Cross-Platform Support**: Works seamlessly on Linux, macOS, and Windows—`protoc` is invoked with platform-
+    appropriate paths, and generated files are compatible with cross-compilation.
+- **Verbose Logging**: The macro prints `protoc` command lines (via `message(STATUS)`) to help debug include 
+   path or `*.proto` import issues.
+
+`kmcmake_cc_proto` is a must-have for C++ projects using Protobuf—it simplifies the entire code generation workflow, 
+ensures IDE compatibility, and integrates flawlessly with kmcmake’s build system. By following the "source directory
+ output + git-ignore" best practice, it keeps your repo clean and your development workflow smooth.

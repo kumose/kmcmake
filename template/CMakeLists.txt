@@ -25,7 +25,7 @@ if(NOT CHANGEME)
 endif ()
 
 string(TIMESTAMP CURRENT_DATE "%Y-%m-%d")
-set(TM_KMCMAKE_VERSION 0.7.0)
+set(TM_KMCMAKE_VERSION 1.0.0)
 
 configure_file(${PROJECT_SOURCE_DIR}/CMakeLists.txt.in ${PROJECT_BINARY_DIR}/CMakeLists.txt @ONLY)
 configure_file(${PROJECT_SOURCE_DIR}/README.md.in ${PROJECT_BINARY_DIR}/README.md @ONLY)
@@ -39,6 +39,7 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_cpack_config.cmake ${PROJECT
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_cxx_config.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_cxx_config.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_deps.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_deps.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_test.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_test.cmake COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_user_option.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_user_option.cmake COPYONLY)
 file(COPY ${PROJECT_SOURCE_DIR}/cmake/deb DESTINATION ${PROJECT_BINARY_DIR}/cmake)
 file(COPY ${PROJECT_SOURCE_DIR}/cmake/rpm DESTINATION ${PROJECT_BINARY_DIR}/cmake)
 install(DIRECTORY ${PROJECT_BINARY_DIR}/cmake DESTINATION .)

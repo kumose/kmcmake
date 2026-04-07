@@ -1,0 +1,130 @@
+# kmcmake 生成的 `version.h`：项目与构建环境元数据桥梁
+kmcmake 会在构建过程中自动从 `myproject/version.h.in` 模板生成 `version.h` 头文件——作为**构建系统与应用代码之间的核心桥梁**。它将关键的项目、编译器和环境元数据封装为宏定义，消除「隐藏」控制逻辑（如分散的 `#define` 指令），让构建上下文清晰可见。
+
+## `version.h` 的核心用途
+- **单一真相源**：聚合项目版本、构建类型、编译器详情和硬件支持到单个文件——无需在代码中手动定义这些信息。
+- **环境可见性明确化**：让构建相关元数据（如 C++ 标准、SIMD 支持）可被应用访问，避免「隐性假设」（如「当前构建是否启用 AVX2？」）。
+- **无需 Git 追踪**：生成的 `version.h`（而非 `.in` 模板）会被 kmcmake 默认配置排除在 Git 之外，因为它包含机器专属的构建时数据（如本地编译器版本、硬件特性）。追踪该文件会导致冲突和误导性差异。
+
+## 完整元数据字段解析
+以下是 `version.h` 中每个宏的详细说明，与 `version.h.in` 模板直接对应：
+
+| 宏定义                                      | 来源/模板占位符                     | 用途                                                                 |
+|--------------------------------------------|------------------------------------|----------------------------------------------------------------------|
+| ### 项目版本元数据                         |                                    | 项目的标准语义化版本信息                                             |
+| `[PROJECT_NAME_UP]_VERSION_MAJOR`          | `@PROJECT_VERSION_MAJOR@`          | 主版本号（如 `1.2.3` 中的 `1`）。                                    |
+| `[PROJECT_NAME_UP]_VERSION_MINOR`          | `@PROJECT_VERSION_MINOR@`          | 次版本号（如 `1.2.3` 中的 `2`）。                                    |
+| `[PROJECT_NAME_UP]_VERSION_PATCH`          | `@PROJECT_VERSION_PATCH@`          | 修订版本号（如 `1.2.3` 中的 `3`）。                                  |
+| `[PROJECT_NAME_UP]_VERSION`                | 由版本号计算得出                   | 数值型版本（如 `1.2.3` 对应 `1002003`），便于版本比较。              |
+| `[PROJECT_NAME_UP]_VERSION_STRING`         | `@PROJECT_VERSION@`                | 人类可读版本字符串（如 `"1.2.3"`）。                                  |
+| ### 构建环境元数据                         |                                    | 项目构建所在系统的详情                                               |
+| `[PROJECT_NAME_UP]_BUILD_SYSTEM`           | `@LC_KMCMAKE_PRETTY_NAME@`         | 构建操作系统/发行版名称（如 `"Ubuntu 22.04 LTS"`）。                  |
+| `[PROJECT_NAME_UP]_BUILD_SYSTEM_VERSION`   | `@KMCMAKE_DISTRO_VERSION_ID@`      | 构建操作系统/发行版版本（如 `"22.04"`）。                             |
+| ### 编译器元数据                           |                                    | 编译器标识与配置                                                     |
+| `[PROJECT_NAME_UP]_CXX_COMPILER_ID`         | `@CMAKE_CXX_COMPILER_ID@`          | 编译器厂商（如 `"GNU"`、`"Clang"`、`"MSVC"`）。                       |
+| `[PROJECT_NAME_UP]_CXX_COMPILER_VERSION`   | `@CMAKE_CXX_COMPILER_VERSION@`     | 编译器版本（如 GCC 11.4 对应 `"11.4.0"`）。                           |
+| `[PROJECT_NAME_UP]_CMAKE_CXX_COMPILER_FLAGS` | `@CMAKE_CXX_COMPILER_FLAGS@`     | CMake 基础编译器标志（如 RelWithDebInfo 模式下的 `-g -O2`）。         |
+| `[PROJECT_NAME_UP]_CXX_COMPILER_FLAGS`     | `@KMCMAKE_CXX_OPTIONS@`            | 项目专属编译器标志（来自 `myproject_cxx_config.cmake`）。             |
+| `[PROJECT_NAME_UP]_CXX_STANDARD`           | `@CMAKE_CXX_STANDARD@`             | 使用的 C++ 标准（如 `"17"`——与 kmcmake 默认配置一致）。               |
+| ### 构建类型元数据                         |                                    | 构建配置（Debug/Release 等）                                          |
+| `[PROJECT_NAME_UP]_BUILD_TYPE_STRING`      | `@UPPERCASE_BUILD_TYPE@`           | 大写构建类型字符串（如 `"RELEASE"`、`"DEBUG"`）。                      |
+| `[PROJECT_NAME_UP]_BUILD_[UPPERCASE_BUILD_TYPE]` | 自动生成       | 构建类型专属宏（如 Release 构建对应 `MYPROJECT_BUILD_RELEASE`——用于条件编译）。 |
+| `IS_[PROJECT_NAME_UP]_BUILD_TYPE_DEBUG`    | 基于构建类型的条件定义             | 布尔值（1/0），标识是否为 Debug 构建（如 Debug 模式为 `1`，否则为 `0`）。 |
+| ### 架构/SIMD 元数据                       |                                    | 硬件加速支持（来自 `myproject_cxx_config.cmake`）                      |
+| `KMCMAKE_ENABLE_ARCH`                      | `#cmakedefine KMCMAKE_ENABLE_ARCH` | 定义时表示启用架构专属标志（如 AVX2）。                               |
+| `IS_[PROJECT_NAME_UP]_ENABLE_ARCH`         | 基于 `KMCMAKE_ENABLE_ARCH` 的条件定义 | 布尔值（1/0），标识是否启用架构优化。                                 |
+| `[PROJECT_NAME_UP]_HAVE_RUNTIME_AVX512_SUPPORTED` | 基于 `KMCMAKE_HAVE_RUNTIME_AVX512_SUPPORTED` 的条件定义 | 布尔值（1/0），标识构建是否支持 AVX512（依赖硬件）。 |
+| `[PROJECT_NAME_UP]_HAVE_RUNTIME_AVX2_SUPPORTED` | 基于 `KMCMAKE_HAVE_RUNTIME_AVX2_SUPPORTED` 的条件定义 | 布尔值（1/0），标识构建是否支持 AVX2（依赖硬件）。 |
+| `[PROJECT_NAME_UP]_HAVE_RUNTIME_SSE4_2_SUPPORTED` | 基于 `KMCMAKE_HAVE_RUNTIME_SSE4_2_SUPPORTED` 的条件定义 | 布尔值（1/0），标识构建是否支持 SSE4.2（依赖硬件）。 |
+
+### 占位符说明
+- `[PROJECT_NAME_UP]`：替换为大写的项目名称（如 `PROJECT_NAME=myproject` 时，对应 `MYPROJECT`）。
+- `@UPPERCASE_BUILD_TYPE@`：根据 `CMAKE_BUILD_TYPE` 替换为大写构建类型（如 `RELEASE`、`DEBUG`）。
+
+## kmcmake 生成 `version.h` 的流程
+1. **模板文件**：你可编辑 `myproject/` 目录下的 `version.h.in` 模板，添加/删除元数据字段（kmcmake 默认提供完整模板）。
+2. **构建时生成**：执行 `cmake --build build` 时，kmcmake 会将所有 `@占位符@` 替换为实际构建时数据（如 `@PROJECT_VERSION@` → `1.2.3`）。
+3. **输出位置**：生成的 `version.h` 存放于构建目录（如 `build/myproject/version.h`）——代码可直接包含该文件（kmcmake 会自动配置包含路径）。
+
+## 使用示例：在代码中访问元数据
+在应用中包含生成的 `version.h`，即可使用这些宏定义——无需额外配置（kmcmake 已将构建目录添加到包含路径）：
+
+```cpp title="myproject/main.cc"
+#include "version.h"  // kmcmake 生成，无需相对路径
+#include "api.h"
+#include "foo.h"
+#include <iostream>
+
+int main() {
+    std::cout << "=== " << PROJECT_NAME << " 构建元数据 ===\n";
+    // 项目版本
+    std::cout << "版本：" << MYPROJECT_VERSION_STRING << "\n";
+    // 构建环境
+    std::cout << "构建系统：" << MYPROJECT_BUILD_SYSTEM << " (" << MYPROJECT_BUILD_SYSTEM_VERSION << ")\n";
+    // 编译器信息
+    std::cout << "编译器：" << MYPROJECT_CXX_COMPILER_ID << " " << MYPROJECT_CXX_COMPILER_VERSION << "\n";
+    std::cout << "C++ 标准：" << MYPROJECT_CXX_STANDARD << "\n";
+    // 构建类型
+    std::cout << "构建类型：" << MYPROJECT_BUILD_TYPE_STRING << "\n";
+    // SIMD 支持
+    if (IS_MYPROJECT_ENABLE_ARCH) {
+        std::cout << "架构优化：已启用\n";
+        std::cout << "AVX2 支持：" << (MYPROJECT_HAVE_RUNTIME_AVX2_SUPPORTED ? "是" : "否") << "\n";
+        std::cout << "AVX512 支持：" << (MYPROJECT_HAVE_RUNTIME_AVX512_SUPPORTED ? "是" : "否") << "\n";
+    } else {
+        std::cout << "架构优化：已禁用\n";
+    }
+
+    // 基于构建类型的条件编译
+    #if defined(MYPROJECT_BUILD_DEBUG)
+        std::cout << "\n[调试模式] 已启用额外日志\n";
+    #endif
+
+    return 0;
+}
+```
+
+### 预期输出
+```
+=== myproject 构建元数据 ===
+版本：1.2.3
+构建系统：Ubuntu 22.04 LTS (22.04)
+编译器：GNU 11.4.0
+C++ 标准：17
+构建类型：RELEASE
+架构优化：已启用
+AVX2 支持：是
+AVX512 支持：否
+```
+
+## 关键最佳实践
+1. **切勿追踪生成的 `version.h`**：  
+   kmcmake 已通过 `.gitignore` 默认排除该文件。追踪它会导致：
+   - 开发者间冲突（不同编译器/硬件环境）。
+   - 误导性差异（每次构建元数据可能变化）。
+   - 构建失败（机器专属标志/硬件支持不兼容）。
+
+2. **编辑 `version.h.in` 模板（而非 `version.h`）**：  
+   所有定制（添加/删除元数据字段）必须在 `myproject/version.h.in` 中进行——生成的 `version.h` 会在每次构建时覆盖。
+
+3. **使用元数据实现显式逻辑**：  
+   避免「隐性假设」（如「此代码仅支持 AVX2」），应使用宏定义添加条件判断：
+   ```cpp
+   #if MYPROJECT_HAVE_RUNTIME_AVX2_SUPPORTED
+       // 使用 AVX2 优化代码
+       std::cout << "使用 AVX2 加速函数\n";
+       avx2_optimized_foo();
+   #else
+       // 降级到标准代码
+       std::cout << "使用标准函数\n";
+       standard_foo();
+   #endif
+   ```
+
+## `version.h` 的核心设计理念
+kmcmake 的 `version.h` 旨在**消除「隐性控制流」**——构建相关决策（如编译器标志、硬件支持）不再隐藏在 CMake 脚本或 Makefile 中，而是以显式宏定义的形式暴露在代码中，让：
+- 调试更高效（如「构建失败？查看 `version.h` 中的编译器标志」）。
+- 跨平台支持更可靠（如 AVX2/SSE4.2 的条件逻辑）。
+- 协作更顺畅（所有开发者使用相同的元数据结构，即使在不同机器上）。
+
+这与 kmcmake 的核心原则一致：「约定优于配置」且完全透明。

@@ -1,0 +1,235 @@
+# `kmcmake_cc_binary`: Simplify C++ Executable Builds with Minimal Boilerplate
+
+`kmcmake_cc_binary` is kmcmake’s dedicated macro for defining C++ executable targets—designed to eliminate 
+repetitive CMake `add_executable` boilerplate while retaining full control over compilation and linking. 
+It aligns seamlessly with `kmcmake_cc_library` (sharing consistent parameter naming) and integrates with 
+kmcmake’s core workflows (e.g., compiler flags, dependencies, installation).
+
+Whether you’re building a small command-line tool or a large application, this macro streamlines executable 
+configuration with sensible defaults and explicit, easy-to-read syntax.
+
+
+## Core Features at a Glance
+
+- **Minimal Boilerplate**: Replaces dozens of lines of raw CMake with a single declarative function.
+- **Consistent Syntax**: Shares parameter names with `kmcmake_cc_library` (e.g., `SOURCES`, `LINKS`, `INCLUDES`) 
+for a unified workflow.
+- **Fine-Grained Control**: Supports target-specific compiler flags, defines, includes, and dependencies.
+- **Installation Ready**: Auto-generates install rules for public executables (via the `PUBLIC` flag).
+- **IDE-Friendly**: Automatically includes project source/binary directories in include paths for seamless header 
+resolution.
+
+
+## Full Syntax & Parameter Explanation
+
+The macro uses a clean, key-value structure with optional parameters for flexibility. The only **required** parameter
+ is `NAME` (executable name) and `SOURCES` (at least one source file).
+
+```cmake
+kmcmake_cc_binary(
+    # Optional Flags (no values—just presence)
+    PUBLIC                # Mark executable as public (installs to system; default: internal)
+    EXCLUDE_SYSTEM        # Disable "SYSTEM" flag for include directories (default: enabled)
+
+    # Required Identifier
+    NAME <binary_name>    # Name of the executable (e.g., "my_app")
+
+    # Source Files (required: at least one .cc/.cpp file)
+    SOURCES <src1.cc> <src2.cc> ...  # C++ source files (e.g., main.cc, app_logic.cc)
+
+    # Preprocessor Definitions
+    DEFINES <DEF1=1> <DEF2> ...      # Preprocessor macros (applied to the executable)
+
+    # Include Directories
+    INCLUDES <dir1> <dir2> ...       # PRIVATE include directories (only for this executable)
+
+    # Dependencies
+    LINKS <target1> <target2> ...    # PRIVATE linked targets (libraries, CMake targets, etc.)
+    DEPS <dep_target1> <dep_target2> ...  # Build dependencies (ensures targets build first)
+
+    # Compiler Options (override default KMCMAKE_CXX_OPTIONS)
+    COPTS <c_flag1> <c_flag2> ...    # C compiler flags (for C sources)
+    CXXOPTS <cxx_flag1> <cxx_flag2> ...  # C++ compiler flags (for C++ sources)
+    CUOPTS <cuda_flag1> ...          # CUDA compiler flags (for CUDA sources, if applicable)
+)
+```
+
+### Key Parameter Details
+| Parameter               | Purpose & Behavior                                                                 |
+|-------------------------|-----------------------------------------------------------------------------------|
+| `PUBLIC`                | Marks the executable as "public": installs it to the system’s standard `bindir` (e.g., `/usr/local/bin`). Omit for internal tools (not installed). |
+| `EXCLUDE_SYSTEM`        | By default, `INCLUDES` uses CMake’s `SYSTEM` flag (suppresses warnings for system headers). Use this to disable that behavior. |
+| `NAME`                  | **Required**: Name of the executable (e.g., "my_app" → outputs `my_app` on Linux/macOS, `my_app.exe` on Windows). |
+| `SOURCES`               | **Required**: C++ source files (`.cc`/`.cpp`) to compile into the executable. Must include at least one entry (typically `main.cc`). |
+| `DEFINES`               | Preprocessor macros (e.g., `ENABLE_VERBOSE_LOGGING=1`). Applied **only to this executable**. |
+| `INCLUDES`              | PRIVATE include directories (only the executable uses these paths). Automatically includes project source/binary directories (via `$<BUILD_INTERFACE>`) for seamless header resolution. |
+| `LINKS`                 | PRIVATE linked targets: libraries or CMake targets to link against (e.g., `myproject::foo`, `gflags::gflags`, `Threads::Threads`). |
+| `DEPS`                  | Build dependencies: ensures these targets are built **before** the executable (e.g., generated code targets, libraries in the project). |
+| `COPTS`/`CXXOPTS`/`CUOPTS` | Override default compiler flags (from `KMCMAKE_CXX_OPTIONS`). Use for executable-specific flags (e.g., debug symbols, optimizations). |
+
+
+## Critical Default Behaviors
+- **Include Paths**: Automatically adds project source (`${PROJECT_NAME}_SOURCE_DIR`) and binary 
+(`${PROJECT_NAME}_BINARY_DIR`) directories to include paths—no need to manually specify paths for project
+ headers (e.g., `#include "myproject/foo.h"` works out of the box).
+- **Compiler Flags**: Inherits kmcmake’s default `KMCMAKE_CXX_OPTIONS` (from `myproject_cxx_config.cmake`)
+ unless overridden by `CXXOPTS`.
+- **Linking**: All dependencies in `LINKS` are linked as `PRIVATE` (executable-only—no transitive inheritance,
+ which is standard for executables).
+- **Installation**: If `PUBLIC` is set, the executable is installed to `${CMAKE_INSTALL_BINDIR}` (standard
+ system path for binaries).
+- **CUDA Support**: The `CUOPTS` parameter enables CUDA-specific flags for executables with `.cu` sources.
+
+
+## Practical Usage Examples
+Below are common scenarios to demonstrate how to use `kmcmake_cc_binary` in real projects.
+
+### Example 1: Basic Internal Executable
+Define a simple internal tool (not installed) that links to a project library:
+```cmake
+# myproject/tools/CMakeLists.txt
+kmcmake_cc_binary(
+    NAME my_tool  # Executable name: my_tool
+    SOURCES
+        main.cc    # Entry point (must have int main())
+        tool_logic.cc  # Additional source file
+    DEFINES
+        TOOL_VERSION="0.1.0"  # Preprocessor define
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}  # Private include path for tool-specific headers
+    LINKS
+        myproject::foo  # Link to project library (from kmcmake_cc_library)
+        gflags::gflags  # Link to third-party library (from myproject_deps.cmake)
+    DEPS
+        myproject::api  # Build dependency (api library builds first)
+)
+```
+
+#### Result:
+
+- Generates an executable named `my_tool` (Linux/macOS) or `my_tool.exe` (Windows).
+- Links to `myproject::foo` (project library) and `gflags::gflags` (third-party library).
+- Resolves headers like `#include "myproject/foo.h"` (via auto-added project source directory) and `#include 
+  "tool_logic.h"` (via `INCLUDES`).
+- Not installed (no `PUBLIC` flag)—only usable within the project build directory.
+
+
+### Example 2: Public Executable (Installed to System)
+Define a public-facing application that’s installed to the system’s `bin` directory:
+```cmake
+# myproject/app/CMakeLists.txt
+kmcmake_cc_binary(
+    PUBLIC  # Mark as public—installs to /usr/local/bin
+    NAME my_app
+    SOURCES
+        main.cc
+        app_core.cc
+        ui/console_ui.cc  # Nested source file (supports relative paths)
+    DEFINES
+        ENABLE_PLUGINS=1
+        PROJECT_NAME="${PROJECT_NAME}"  # Use project metadata as a define
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}/ui  # Include path for UI headers
+    LINKS
+        myproject::foo_static  # Link to static version of project library
+        spdlog::spdlog         # Link to third-party logging library
+        Threads::Threads       # Link to system thread library
+    CXXOPTS
+        "-O3"  # Override default optimization for this executable
+)
+```
+
+#### Result:
+- Generates executable `my_app`.
+- Installs to `${CMAKE_INSTALL_BINDIR}` (e.g., `/usr/local/bin` on Linux, `C:\Program Files\myproject\bin` on Windows) 
+when `cmake --install build` is run.
+- Uses static linking (`myproject::foo_static`) for portability.
+- Overrides default compiler flags with `-O3` (via `CXXOPTS`).
+
+
+### Example 3: Executable with CUDA Support
+Define an executable that includes CUDA sources (e.g., GPU-accelerated code):
+```cmake
+# myproject/gpu_app/CMakeLists.txt
+kmcmake_cc_binary(
+    NAME gpu_tool
+    SOURCES
+        main.cc
+        gpu_kernel.cu  # CUDA source file
+    CUOPTS
+        "-arch=sm_75"  # CUDA architecture flag
+    LINKS
+        myproject::gpu_lib  # Project library with CUDA support
+        CUDA::cudart        # CUDA runtime library
+    DEFINES
+        CUDA_ENABLED=1
+)
+```
+
+#### Result:
+- Compiles `gpu_kernel.cu` with CUDA flags (via `CUOPTS`).
+- Links to CUDA runtime library (`CUDA::cudart`).
+- Enables CUDA-specific logic via the `CUDA_ENABLED` define.
+
+
+## How to Build the Executable
+Use kmcmake’s standard build workflow—no extra steps required:
+```bash
+# Configure (use presets for convenience)
+cmake --preset default
+
+# Build the executable (CMake automatically finds the target)
+cmake --build build --target my_app
+
+# Run the executable (Linux/macOS)
+./build/myproject/app/my_app
+
+# Run the executable (Windows, Debug build)
+build\myproject\app\Debug\my_app.exe
+
+# Install public executables (if PUBLIC is set)
+sudo cmake --install build
+```
+
+
+## Key Best Practices
+1. **Use `PUBLIC` for User-Facing Tools**: Only mark executables as `PUBLIC` if they’re intended for end users.
+ Internal tools (e.g., build helpers) omit `PUBLIC` to avoid cluttering system paths.
+2. **Link to Project Libraries via Aliases**: Use `myproject::foo` (shared) or `myproject::foo_static` (static)
+ instead of raw library names—ensures consistency with kmcmake’s target naming.
+3. **Leverage Project Metadata**: Use `${PROJECT_NAME}`, `${PROJECT_VERSION}`, or other project variables in 
+`DEFINES` for versioning or branding (e.g., `--version` flags).
+4. **Keep `INCLUDES` Minimal**: Rely on kmcmake’s auto-added project source/binary directories for project
+ headers. Only add `INCLUDES` for executable-specific paths (e.g., `ui/`).
+5. **Override Flags Sparingly**: Use `CXXOPTS`/`COPTS` only for executable-specific flags. Prefer kmcmake’s
+ global `KMCMAKE_CXX_OPTIONS` (from `myproject_cxx_config.cmake`) for consistent flags across the project.
+
+
+## Why This Macro Beats Raw CMake
+Raw CMake requires writing repetitive, error-prone code for executables. For example, the "public executable"
+ example above would require ~30 lines of raw CMake:
+```cmake
+# Raw CMake equivalent (verbose!)
+add_executable(my_app main.cc app_core.cc ui/console_ui.cc)
+target_compile_definitions(my_app PUBLIC ENABLE_PLUGINS=1 PROJECT_NAME="myproject")
+target_include_directories(my_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ui)
+target_link_libraries(my_app PRIVATE myproject::foo_static spdlog::spdlog Threads::Threads)
+target_compile_options(my_app PRIVATE "-O3")
+install(TARGETS my_app RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Plus manual include path configuration for project headers!
+```
+
+`kmcmake_cc_binary` condenses this into a single, readable function—eliminating boilerplate while retaining full control.
+
+
+## Final Notes
+- **Parameter Consistency**: Shares syntax with `kmcmake_cc_library` (e.g., `SOURCES`, `LINKS`, `DEFINES`)
+ to reduce cognitive load—learn one, use both.
+- **Unparsed Arguments**: The macro does not warn about unparsed arguments (unlike `kmcmake_cc_library`),
+ so double-check parameter names to avoid typos (e.g., `LINK` → `LINKS`).
+- **Extensibility**: Works with native CMake functions—you can extend the executable target with `set_target_properties()`
+ or `target_compile_options()` after calling the macro if needed.
+
+`kmcmake_cc_binary` is a cornerstone of kmcmake’s executable build workflow—simplifying configuration, ensuring
+ consistency, and letting you focus on writing code instead of CMake boilerplate. It scales from small tools to 
+ large applications and integrates seamlessly with kmcmake’s other core macros.

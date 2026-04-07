@@ -1,0 +1,387 @@
+# kmcmake Test Macros: Streamline C++ Testing with Flexible, Scalable Workflows
+
+kmcmake provides three complementary test macros—`kmcmake_cc_test`, `kmcmake_cc_test_ext`, and 
+`kmcmake_cc_test_library`—designed to simplify C++ test setup, execution, and organization. Built to integrate 
+seamlessly with testing frameworks (e.g., Google Test, doctest) and kmcmake’s core build system, these macros 
+eliminate repetitive test-related CMake boilerplate while supporting advanced use cases like parameterized tests,
+ test result validation, and shared test utilities.
+
+Whether you’re writing unit tests, integration tests, or parameterized tests, this suite of macros delivers a 
+consistent, declarative syntax that scales from small projects to large codebases.
+
+
+## Core Macro Overview
+| Macro                  | Purpose                                                                 |
+|------------------------|-------------------------------------------------------------------------|
+| `kmcmake_cc_test`      | Defines a basic test executable (runs as a CMake test target).         |
+| `kmcmake_cc_test_ext`  | Extends existing test executables for parameterized/filtered tests (runs with custom args
+/validation). |
+| `kmcmake_cc_test_library` | Builds a shared static/shared library for test utilities (reusable across test targets). |
+
+All macros share consistent parameter naming with `kmcmake_cc_library`/`kmcmake_cc_binary` (e.g., `SOURCES`, `LINKS`, 
+`CXXOPTS`) to minimize cognitive load.
+
+
+## 1. `kmcmake_cc_test`: Basic Test Executable
+The foundational macro for defining test targets—compiles test sources into an executable and registers it as a CMake
+ `add_test` target. Ideal for unit tests, integration tests, or simple test cases.
+
+### Syntax
+```cmake
+kmcmake_cc_test(
+    # Optional Flags
+    DISABLED               # Disable the test (never runs)
+    EXT                    # Mark as "extendable" (no auto-run—used with kmcmake_cc_test_ext)
+    EXCLUDE_SYSTEM         # Disable "SYSTEM" flag for include directories (suppresses warnings by default)
+
+    # Required Arguments
+    NAME <test_name>       # Name of the test (e.g., "foo_test")
+    MODULE <module_name>   # Logical group for the test (e.g., "base", "utils")—required for test organization
+
+    # Test Configuration
+    SOURCES <src1.cc> ...  # Test source files (e.g., foo_test.cc)
+    DEPS <dep1> <dep2> ... # Build dependencies (e.g., project libraries, generated code)
+    LINKS <lib1> <lib2> ...# Linked libraries (e.g., gtest, myproject::foo)
+    DEFINES <DEF1> ...     # Preprocessor defines for the test
+    INCLUDES <dir1> ...    # Test-specific include directories
+    COPTS <c_flags> ...    # C compiler flags for the test
+    CXXOPTS <cxx_flags> ...# C++ compiler flags for the test
+    CUOPTS <cuda_flags> ...# CUDA compiler flags (for .cu test sources)
+    COMMAND <custom_cmd>   # Override default test command (default: runs the test executable)
+)
+```
+
+### Key Details
+- **Test Naming**: Generates a unique test target name as `{MODULE}_{NAME}` (e.g., `base_foo_test`)—avoids conflicts 
+across test groups.
+- **Auto-Run Behavior**: Tests run by default unless `DISABLED` or `EXT` is set.
+- **Include Paths**: Automatically adds project source/binary directories (e.g., `#include "myproject/foo.h"` or 
+`#include "version.h"` works out of the box).
+- **Framework Compatibility**: Works with any testing framework (Google Test, doctest, Catch2)—simply link the 
+framework via `LINKS`.
+
+### Example Usage
+```cmake
+# Unit test for "foo" library (Google Test)
+kmcmake_cc_test(
+    NAME foo_test
+    MODULE utils          # Group under "utils" module
+    SOURCES foo_test.cc   # Test source file
+    DEPS myproject::foo   # Build dependency (foo library builds first)
+    LINKS
+        myproject::foo    # Link to the library under test
+        gtest             # Link Google Test framework
+        gtest_main        # Link Google Test main (provides int main())
+    CXXOPTS ${KMCMAKE_CXX_OPTIONS}  # Inherit project compiler flags
+)
+
+# Doctest-based test (no separate main needed)
+kmcmake_cc_test(
+    NAME foo_doctest
+    MODULE utils
+    SOURCES foo_doctest.cc  # Doctest test (includes test cases in the source)
+    LINKS
+        myproject::foo
+        doctest             # Link doctest framework
+    DEFINES DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN  # Doctest provides main()
+)
+
+# Disabled test (never runs)
+kmcmake_cc_test(
+    NAME wip_test
+    MODULE utils
+    SOURCES wip_test.cc
+    DISABLED  # Mark as work-in-progress (skipped in test runs)
+    LINKS myproject::foo gtest gtest_main
+)
+
+# Extendable test (used with kmcmake_cc_test_ext for parameterized runs)
+kmcmake_cc_test(
+    NAME args_test
+    MODULE base
+    SOURCES args_test.cc
+    EXT  # No auto-run—extended via kmcmake_cc_test_ext
+    LINKS myproject::core gtest gtest_main
+)
+```
+
+
+## 2. `kmcmake_cc_test_ext`: Extended/Parameterized Tests
+Extends an existing `kmcmake_cc_test` (marked with `EXT`) to support **parameterized tests**, **custom arguments**, 
+or **result validation** (pass/fail/skip via regex). Ideal for running the same test executable with different inputs
+ or validating specific output patterns.
+
+### Syntax
+```cmake
+kmcmake_cc_test_ext(
+    # Optional Flags
+    DISABLED               # Disable this extended test variant
+
+    # Required Arguments
+    NAME <test_name>       # Name of the base test (must match kmcmake_cc_test's NAME)
+    MODULE <module_name>   # Module of the base test (must match kmcmake_cc_test's MODULE)
+
+    # Optional Configuration
+    ALIAS <alias>          # Unique alias for the variant (avoids conflicts)
+    ARGS <arg1> <arg2> ... # Custom arguments passed to the test executable
+    PASS_EXP <regex> ...   # Regex pattern(s) for a passing test (e.g., "Passed")
+    FAIL_EXP <regex> ...   # Regex pattern(s) for a failing test (e.g., "ERROR")
+    SKIP_EXP <regex> ...   # Regex pattern(s) for a skipped test (e.g., "SKIP")
+)
+```
+
+### Key Details
+- **Test Target Naming**: Generates a unique name as `{MODULE}_{NAME}_{ALIAS}` (e.g., `base_args_test_fail`). 
+If `ALIAS` is omitted, uses `{MODULE}_{NAME}`.
+- **Result Validation**: Uses CMake’s `FAIL_REGULAR_EXPRESSION`, `PASS_REGULAR_EXPRESSION`, and `SKIP_REGULAR_EXPRESSION`
+ to validate test output.
+- **Parameterization**: Pass custom arguments via `ARGS` to run the same test executable with different inputs 
+(e.g., `ARGS "input1.txt" "output1.txt"`).
+- **Dependency**: Requires a corresponding `kmcmake_cc_test` with the same `NAME`/`MODULE` and the `EXT` flag.
+
+### Example Usage
+```cmake
+# First, define the base extendable test (EXT flag)
+kmcmake_cc_test(
+    NAME args_test
+    MODULE base
+    SOURCES args_test.cc  # Test reads command-line args and outputs results
+    EXT  # Mark as extendable
+    LINKS myproject::core gtest gtest_main
+)
+
+# Extended variant 1: Test with "Failed" argument (expect failure)
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS fail_args
+    ARGS "Failed"  # Pass argument to test executable
+    FAIL_EXP "[^a-z]Error;ERROR;Failed"  # Regex for failure
+)
+
+# Extended variant 2: Test with "SKIP" argument (expect skip)
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS skip
+    ARGS "SKIP"
+    SKIP_EXP "[^a-z]Skip;SKIP;Skipped"  # Regex for skip
+)
+
+# Extended variant 3: Test with "Passed" argument (expect pass)
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS pass
+    ARGS "Passed"
+    PASS_EXP "pass;Passed"  # Regex for pass
+)
+
+# Disabled extended variant (never runs)
+kmcmake_cc_test_ext(
+    NAME args_test
+    MODULE base
+    ALIAS disabled_variant
+    ARGS "Disabled"
+    PASS_EXP "pass"
+    DISABLED  # Skip this variant
+)
+
+# Parameterized test: Multiple input arguments
+kmcmake_cc_test_ext(
+    NAME math_test
+    MODULE utils
+    ALIAS add_1_2
+    ARGS "add" "1" "2"  # Test 1 + 2
+    PASS_EXP "Result: 3"
+)
+
+kmcmake_cc_test_ext(
+    NAME math_test
+    MODULE utils
+    ALIAS multiply_3_4
+    ARGS "multiply" "3" "4"  # Test 3 * 4
+    PASS_EXP "Result: 12"
+)
+```
+
+
+## 3. `kmcmake_cc_test_library`: Shared Test Utilities
+Builds a static/shared library of reusable test utilities (e.g., mock classes, helper functions) to avoid 
+duplicating code across test targets. Aligns with `kmcmake_cc_library` but optimized for test-only use cases 
+(internal, not installed).
+
+### Syntax
+```cmake
+kmcmake_cc_test_library(
+    # Optional Flags
+    SHARED                 # Build shared library (default: static only)
+    EXCLUDE_SYSTEM         # Disable "SYSTEM" flag for include directories
+
+    # Optional Identifiers
+    NAME <lib_name>        # Name of the test library (auto-inferred from folder if missing)
+    NAMESPACE <ns>         # Namespace for the library (defaults to ${PROJECT_NAME})
+
+    # Library Configuration (matches kmcmake_cc_library)
+    SOURCES <src1.cc> ...  # Utility source files (e.g., mock_foo.cc)
+    OBJECTS <obj_targets> ... # Prebuilt object targets
+    HEADERS <hdr1.h> ...   # Utility headers (e.g., mock_foo.h)
+    INCLUDES <dir1> ...    # Public include directories (for test targets using this library)
+    PINCLUDES <dir1> ...   # Private include directories
+    DEFINES <DEF1> ...     # Preprocessor defines
+    DEPS <dep_targets> ... # Build dependencies
+    LINKS <lib1> ...       # Public linked libraries
+    PLINKS <lib1> ...      # Private linked libraries
+    WLINKS <lib1> ...      # Whole-archive linked libraries
+    COPTS <c_flags> ...    # C compiler flags
+    CXXOPTS <cxx_flags> ...# C++ compiler flags
+    CUOPTS <cuda_flags> ...# CUDA compiler flags
+)
+```
+
+### Key Details
+- **Library Types**: Builds a static library by default. Add `SHARED` to build both static and shared variants.
+- **Naming**: Generates aliases like `{NAMESPACE}::{NAME}_static` (static) and `{NAMESPACE}::{NAME}` (shared, if enabled).
+- **Internal Use**: Not installed or exported—only usable within test targets.
+- **Reusability**: Test targets link to this library via `LINKS` (e.g., `myproject::test_utils_static`).
+
+### Example Usage
+```cmake
+# Build a test utility library with mocks and helpers
+kmcmake_cc_test_library(
+    NAME test_utils
+    NAMESPACE myproject
+    SOURCES
+        mock_foo.cc  # Mock implementation of Foo class
+        test_helpers.cc  # Helper functions (e.g., data generators)
+    HEADERS
+        mock_foo.h
+        test_helpers.h
+    INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}  # Public include path for test targets
+    LINKS
+        myproject::foo  # Link to the library being mocked
+        gtest           # Link Google Test (for mock support)
+)
+
+# Use the test utility library in a test
+kmcmake_cc_test(
+    NAME foo_integration_test
+    MODULE integration
+    SOURCES foo_integration_test.cc
+    LINKS
+        myproject::foo
+        myproject::test_utils_static  # Link test utility library
+        gtest
+        gtest_main
+    INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}  # Access test_utils headers
+)
+```
+
+
+## Critical Default Behaviors
+- **Test Discovery**: All `kmcmake_cc_test` and `kmcmake_cc_test_ext` targets are registered with CMake’s test 
+framework—run via `ctest` or IDE test runners.
+- **Compiler Flags**: Inherits project-wide `KMCMAKE_CXX_OPTIONS` (from `myproject_cxx_config.cmake`) unless 
+overridden by `CXXOPTS`/`COPTS`.
+- **Include Paths**: All test macros auto-add project source/binary directories—no manual path configuration 
+for project headers.
+- **Test Isolation**: Each test executable is built separately to avoid dependency conflicts.
+- **Module-Based Organization**: Tests are grouped by `MODULE` (e.g., `utils_foo_test`, `base_args_test_fail`), 
+making it easy to filter tests (e.g., `ctest -R utils_*` to run only utils module tests).
+
+
+## How to Run Tests
+Use CMake’s standard test workflow or kmcmake’s build flags to control test execution:
+
+### 1. Enable Test Build
+Tests are only built if `KMCMAKE_BUILD_TEST` is enabled (set via CMake flag or `CMakePresets.json`):
+```bash
+# Configure with tests enabled
+cmake --preset default -DKMCMAKE_BUILD_TEST=ON
+```
+
+### 2. Build Tests
+```bash
+# Build all test targets
+cmake --build build --target all
+
+# Build a specific test target
+cmake --build build --target base_args_test_fail
+```
+
+### 3. Run Tests
+```bash
+# Run all tests (from build directory)
+ctest
+
+# Run tests in a specific module (e.g., "utils" module)
+ctest -R utils_*
+
+# Run a specific test variant
+ctest -R base_args_test_fail_args
+
+# Run tests with verbose output
+ctest -V
+```
+
+### 4. Skip Entire Modules
+Skip all tests in a module by adding the module name to `${PROJECT_NAME}_SKIP_TEST`:
+```cmake
+# Skip all tests in the "wip" module
+list(APPEND ${PROJECT_NAME}_SKIP_TEST wip)
+```
+
+
+## Key Best Practices
+1. **Group Tests with `MODULE`**: Use `MODULE` to organize tests by feature (e.g., `utils`, `network`, `storage`)—
+simplifies filtering and debugging.
+2. **Reuse Test Utilities**: Use `kmcmake_cc_test_library` for shared mocks/helpers to avoid code duplication across tests.
+3. **Parameterize with `kmcmake_cc_test_ext`**: Avoid duplicating test source files for similar cases—use `ARGS`
+ to pass parameters to a single test executable.
+4. **Validate Output with Regex**: Use `PASS_EXP`/`FAIL_EXP`/`SKIP_EXP` to ensure tests produce expected output 
+(critical for integration tests).
+5. **Disable WIP Tests**: Mark work-in-progress tests with `DISABLED` instead of commenting them out—keeps the
+ test suite clean and avoids accidental commits of untested code.
+6. **Link Test Frameworks Correctly**: For Google Test, link `gtest_main` to avoid writing a custom `int main()`
+—for doctest/Catch2, use framework-specific main() defines.
+
+
+## Why These Macros Beat Raw CMake
+Raw CMake requires tedious boilerplate for test setup, especially for parameterized or organized tests. For example, a parameterized test with 3 variants would require:
+```cmake
+# Raw CMake Equivalent (Verbose!)
+add_executable(base_args_test args_test.cc)
+target_link_libraries(base_args_test PRIVATE myproject::core gtest gtest_main)
+target_include_directories(base_args_test PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
+
+add_test(NAME base_args_test_fail_args COMMAND base_args_test "Failed")
+set_property(TEST base_args_test_fail_args PROPERTY FAIL_REGULAR_EXPRESSION "[^a-z]Error;ERROR;Failed")
+
+add_test(NAME base_args_test_skip COMMAND base_args_test "SKIP")
+set_property(TEST base_args_test_skip PROPERTY SKIP_REGULAR_EXPRESSION "[^a-z]Skip;SKIP;Skipped")
+
+add_test(NAME base_args_test_pass COMMAND base_args_test "Passed")
+set_property(TEST base_args_test_pass PROPERTY PASS_REGULAR_EXPRESSION "pass;Passed")
+```
+
+kmcmake condenses this into a few lines of declarative code—eliminating boilerplate, ensuring consistency, 
+and reducing human error. Additionally:
+- Tests are automatically organized by `MODULE` for easier filtering.
+- Test utilities are encapsulated in libraries (no duplicate code).
+- Integration with kmcmake’s core workflows (compiler flags, dependencies) is seamless.
+
+
+## Final Notes
+- **Framework Agnostic**: Works with any C++ testing framework—no lock-in to Google Test or doctest.
+- **Extensibility**: Integrates with native CMake test features (e.g., `ctest` filters, test timeouts) via 
+`set_property(TEST ...)`.
+- **Cross-Platform**: Handles Windows/Linux/macOS test execution and output validation consistently.
+- **Verbose Logging**: Enable `VERBOSE_KMCMAKE_BUILD` to see detailed test configuration (sources, links, flags):
+  ```bash
+  cmake --preset default -DVERBOSE_KMCMAKE_BUILD=ON
+  ```
+
+The kmcmake test macro suite delivers a **scalable, maintainable test workflow** that grows with your
+ project—from small unit tests to complex parameterized/integration tests. By reducing boilerplate and
+  enforcing organization, it lets you focus on writing meaningful tests instead of configuring CMake.

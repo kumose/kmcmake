@@ -1,0 +1,867 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt:22 (project)"
+    message: |
+      The system is: Linux - 5.15.0-139-generic - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:22 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/bin/c++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is GNU, found in:
+        /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/3.31.10/CompilerIdCXX/a.out
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:22 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_d73ce/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_d73ce.dir/build.make CMakeFiles/cmTC_d73ce.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF'
+        Building CXX object CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o
+        /usr/bin/c++   -v -o CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -c /usr/local/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.5.0-10ubuntu1~20~ppa3' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-nvptx/usr,amdgcn-amdhsa=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 11.5.0 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_d73ce.dir/'
+         /usr/lib/gcc/x86_64-linux-gnu/11/cc1plus -quiet -v -imultiarch x86_64-linux-gnu -D_GNU_SOURCE /usr/local/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_d73ce.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccU3K3bo.s
+        GNU C++17 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) version 11.5.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 11.5.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0, isl version isl-0.22.1-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/include/x86_64-linux-gnu/c++/11"
+        ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/include/c++/11
+         /usr/include/x86_64-linux-gnu/c++/11
+         /usr/include/c++/11/backward
+         /usr/lib/gcc/x86_64-linux-gnu/11/include
+         /usr/local/include
+         /usr/include/x86_64-linux-gnu
+         /usr/include
+        End of search list.
+        GNU C++17 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) version 11.5.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 11.5.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0, isl version isl-0.22.1-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: c0999ed4baf92257a025691e37d8eb9b
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_d73ce.dir/'
+         as -v --64 -o CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccU3K3bo.s
+        GNU assembler version 2.34 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.34
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.'
+        Linking CXX executable cmTC_d73ce
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d73ce.dir/link.txt --verbose=1
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.5.0-10ubuntu1~20~ppa3' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-nvptx/usr,amdgcn-amdhsa=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 11.5.0 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) 
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d73ce' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_d73ce.'
+         /usr/lib/gcc/x86_64-linux-gnu/11/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/cc1gp4kV.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d73ce /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -v CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+        collect2 version 11.5.0
+        /usr/bin/ld -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/cc1gp4kV.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d73ce /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -v CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+        GNU ld (GNU Binutils for Ubuntu) 2.34
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d73ce' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_d73ce.'
+        /usr/bin/c++  -v -Wl,-v CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_d73ce
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:182 (message)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:22 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/include/c++/11]
+          add: [/usr/include/x86_64-linux-gnu/c++/11]
+          add: [/usr/include/c++/11/backward]
+          add: [/usr/lib/gcc/x86_64-linux-gnu/11/include]
+          add: [/usr/local/include]
+          add: [/usr/include/x86_64-linux-gnu]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/include/c++/11] ==> [/usr/include/c++/11]
+        collapse include dir [/usr/include/x86_64-linux-gnu/c++/11] ==> [/usr/include/x86_64-linux-gnu/c++/11]
+        collapse include dir [/usr/include/c++/11/backward] ==> [/usr/include/c++/11/backward]
+        collapse include dir [/usr/lib/gcc/x86_64-linux-gnu/11/include] ==> [/usr/lib/gcc/x86_64-linux-gnu/11/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include/x86_64-linux-gnu] ==> [/usr/include/x86_64-linux-gnu]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/include/c++/11;/usr/include/x86_64-linux-gnu/c++/11;/usr/include/c++/11/backward;/usr/lib/gcc/x86_64-linux-gnu/11/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:22 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?))("|,| |$)]
+        ignore line: [Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF']
+        ignore line: []
+        ignore line: [Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_d73ce/fast]
+        ignore line: [/usr/bin/make  -f CMakeFiles/cmTC_d73ce.dir/build.make CMakeFiles/cmTC_d73ce.dir/build]
+        ignore line: [make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-cW02bF']
+        ignore line: [Building CXX object CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o]
+        ignore line: [/usr/bin/c++   -v -o CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -c /usr/local/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.5.0-10ubuntu1~20~ppa3' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-nvptx/usr amdgcn-amdhsa=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 11.5.0 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_d73ce.dir/']
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/11/cc1plus -quiet -v -imultiarch x86_64-linux-gnu -D_GNU_SOURCE /usr/local/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_d73ce.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccU3K3bo.s]
+        ignore line: [GNU C++17 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) version 11.5.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 11.5.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0  isl version isl-0.22.1-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring duplicate directory "/usr/include/x86_64-linux-gnu/c++/11"]
+        ignore line: [ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/11/../../../../x86_64-linux-gnu/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/include/c++/11]
+        ignore line: [ /usr/include/x86_64-linux-gnu/c++/11]
+        ignore line: [ /usr/include/c++/11/backward]
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/11/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include/x86_64-linux-gnu]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [GNU C++17 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) version 11.5.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 11.5.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0  isl version isl-0.22.1-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [Compiler executable checksum: c0999ed4baf92257a025691e37d8eb9b]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_d73ce.dir/']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccU3K3bo.s]
+        ignore line: [GNU assembler version 2.34 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.34]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.']
+        ignore line: [Linking CXX executable cmTC_d73ce]
+        ignore line: [/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d73ce.dir/link.txt --verbose=1]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.5.0-10ubuntu1~20~ppa3' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-nvptx/usr amdgcn-amdhsa=/build/gcc-11-NZzNho/gcc-11-11.5.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 11.5.0 (Ubuntu 11.5.0-10ubuntu1~20~ppa3) ]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/11/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d73ce' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_d73ce.']
+        link line: [ /usr/lib/gcc/x86_64-linux-gnu/11/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/cc1gp4kV.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d73ce /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -v CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/cc1gp4kV.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--as-needed] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-znow] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_d73ce] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib] ==> dir [/lib/../lib]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/11/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../..]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+        ignore line: [collect2 version 11.5.0]
+        ignore line: [/usr/bin/ld -plugin /usr/lib/gcc/x86_64-linux-gnu/11/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper -plugin-opt=-fresolution=/tmp/cc1gp4kV.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d73ce /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -v CMakeFiles/cmTC_d73ce.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o]
+        linker tool for 'CXX': /usr/bin/ld
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o] ==> [/usr/lib/x86_64-linux-gnu/Scrt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o] ==> [/usr/lib/x86_64-linux-gnu/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o] ==> [/usr/lib/x86_64-linux-gnu/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11] ==> [/usr/lib/gcc/x86_64-linux-gnu/11]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib] ==> [/usr/lib]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib] ==> [/lib]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/11/../../..] ==> [/usr/lib]
+        implicit libs: [stdc++;m;gcc_s;gcc;c;gcc_s;gcc]
+        implicit objs: [/usr/lib/x86_64-linux-gnu/Scrt1.o;/usr/lib/x86_64-linux-gnu/crti.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o;/usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o;/usr/lib/x86_64-linux-gnu/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "/usr/local/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:22 (project)"
+    message: |
+      Running the CXX compiler's linker: "/usr/bin/ld" "-v"
+      GNU ld (GNU Binutils for Ubuntu) 2.34
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/tools/simd_detect.cmake:67 (check_cxx_source_runs)"
+      - "kmcmake/tools/simd_detect.cmake:397 (kmcmake_detect_simd)"
+      - "kmcmake/tools/simd_detect.cmake:496 (check_x86_simd_flags)"
+      - "kmcmake/kmcmake_module.cmake:57 (include)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test _TEST_FLAG"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-seqo3F"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-seqo3F"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "_TEST_FLAG_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-seqo3F'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_5bdfa/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_5bdfa.dir/build.make CMakeFiles/cmTC_5bdfa.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-seqo3F'
+        Building CXX object CMakeFiles/cmTC_5bdfa.dir/src.cxx.o
+        /usr/bin/c++ -D_TEST_FLAG  -msse -o CMakeFiles/cmTC_5bdfa.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-seqo3F/src.cxx
+        Linking CXX executable cmTC_5bdfa
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5bdfa.dir/link.txt --verbose=1
+        /usr/bin/c++  -msse CMakeFiles/cmTC_5bdfa.dir/src.cxx.o -o cmTC_5bdfa
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-seqo3F'
+        
+      exitCode: 0
+    runResult:
+      variable: "_TEST_FLAG_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:222 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:239 (CHECK_AVX)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_AVX_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m8GO9F"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m8GO9F"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_AVX_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m8GO9F'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_db295/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_db295.dir/build.make CMakeFiles/cmTC_db295.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m8GO9F'
+        Building CXX object CMakeFiles/cmTC_db295.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_AVX_1  -mavx -o CMakeFiles/cmTC_db295.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m8GO9F/src.cxx
+        Linking CXX executable cmTC_db295
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_db295.dir/link.txt --verbose=1
+        /usr/bin/c++  -mavx CMakeFiles/cmTC_db295.dir/src.cxx.o -o cmTC_db295
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m8GO9F'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_AVX_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:222 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:240 (CHECK_AVX)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_AVX2_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-LJOwTD"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-LJOwTD"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_AVX2_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-LJOwTD'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_278aa/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_278aa.dir/build.make CMakeFiles/cmTC_278aa.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-LJOwTD'
+        Building CXX object CMakeFiles/cmTC_278aa.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_AVX2_1  -mavx2 -o CMakeFiles/cmTC_278aa.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-LJOwTD/src.cxx
+        Linking CXX executable cmTC_278aa
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_278aa.dir/link.txt --verbose=1
+        /usr/bin/c++  -mavx2 CMakeFiles/cmTC_278aa.dir/src.cxx.o -o cmTC_278aa
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-LJOwTD'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_AVX2_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:222 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:241 (CHECK_AVX)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_AVX512_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-AA09cI"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-AA09cI"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_AVX512_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-AA09cI'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_646fc/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_646fc.dir/build.make CMakeFiles/cmTC_646fc.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-AA09cI'
+        Building CXX object CMakeFiles/cmTC_646fc.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_AVX512_1  -mavx512 -o CMakeFiles/cmTC_646fc.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-AA09cI/src.cxx
+        c++: error: unrecognized command-line option ‘-mavx512’; did you mean ‘-mavx512f’?
+        make[1]: *** [CMakeFiles/cmTC_646fc.dir/build.make:81: CMakeFiles/cmTC_646fc.dir/src.cxx.o] Error 1
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-AA09cI'
+        make: *** [Makefile:134: cmTC_646fc/fast] Error 2
+        
+      exitCode: 2
+    runResult:
+      variable: "CXX_HAS_AVX512_1_EXITCODE"
+      cached: true
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:222 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:241 (CHECK_AVX)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_AVX512_2"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_AVX512_2_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_29454/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_29454.dir/build.make CMakeFiles/cmTC_29454.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G'
+        Building CXX object CMakeFiles/cmTC_29454.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_AVX512_2  /arch:AVX512 -o CMakeFiles/cmTC_29454.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G/src.cxx
+        /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G/src.cxx:12:2: error: #error "AVX512 is not supported"
+           12 | #error "AVX512 is not supported"
+              |  ^~~~~
+        make[1]: *** [CMakeFiles/cmTC_29454.dir/build.make:81: CMakeFiles/cmTC_29454.dir/src.cxx.o] Error 1
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-4en31G'
+        make: *** [Makefile:134: cmTC_29454/fast] Error 2
+        
+      exitCode: 2
+    runResult:
+      variable: "CXX_HAS_AVX512_2_EXITCODE"
+      cached: true
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:138 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:242 (CHECK_SSE)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_SSE1_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-fM6SiE"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-fM6SiE"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_SSE1_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-fM6SiE'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_1d46b/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_1d46b.dir/build.make CMakeFiles/cmTC_1d46b.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-fM6SiE'
+        Building CXX object CMakeFiles/cmTC_1d46b.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_SSE1_1  -msse -o CMakeFiles/cmTC_1d46b.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-fM6SiE/src.cxx
+        Linking CXX executable cmTC_1d46b
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1d46b.dir/link.txt --verbose=1
+        /usr/bin/c++  -msse CMakeFiles/cmTC_1d46b.dir/src.cxx.o -o cmTC_1d46b
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-fM6SiE'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_SSE1_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:138 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:243 (CHECK_SSE)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_SSE2_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-Vae3CE"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-Vae3CE"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_SSE2_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-Vae3CE'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_5bc18/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_5bc18.dir/build.make CMakeFiles/cmTC_5bc18.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-Vae3CE'
+        Building CXX object CMakeFiles/cmTC_5bc18.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_SSE2_1  -msse2 -o CMakeFiles/cmTC_5bc18.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-Vae3CE/src.cxx
+        Linking CXX executable cmTC_5bc18
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5bc18.dir/link.txt --verbose=1
+        /usr/bin/c++  -msse2 CMakeFiles/cmTC_5bc18.dir/src.cxx.o -o cmTC_5bc18
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-Vae3CE'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_SSE2_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:138 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:244 (CHECK_SSE)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_SSE3_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m5u3dH"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m5u3dH"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_SSE3_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m5u3dH'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_74f23/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_74f23.dir/build.make CMakeFiles/cmTC_74f23.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m5u3dH'
+        Building CXX object CMakeFiles/cmTC_74f23.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_SSE3_1  -msse3 -o CMakeFiles/cmTC_74f23.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m5u3dH/src.cxx
+        Linking CXX executable cmTC_74f23
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_74f23.dir/link.txt --verbose=1
+        /usr/bin/c++  -msse3 CMakeFiles/cmTC_74f23.dir/src.cxx.o -o cmTC_74f23
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-m5u3dH'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_SSE3_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:138 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:245 (CHECK_SSE)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_SSSE3_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-GP0TjG"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-GP0TjG"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_SSSE3_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-GP0TjG'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_fc600/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_fc600.dir/build.make CMakeFiles/cmTC_fc600.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-GP0TjG'
+        Building CXX object CMakeFiles/cmTC_fc600.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_SSSE3_1  -mssse3 -o CMakeFiles/cmTC_fc600.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-GP0TjG/src.cxx
+        Linking CXX executable cmTC_fc600
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fc600.dir/link.txt --verbose=1
+        /usr/bin/c++  -mssse3 CMakeFiles/cmTC_fc600.dir/src.cxx.o -o cmTC_fc600
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-GP0TjG'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_SSSE3_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:138 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:246 (CHECK_SSE)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_SSE4_1_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-eqKNqF"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-eqKNqF"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_SSE4_1_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-eqKNqF'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_346b4/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_346b4.dir/build.make CMakeFiles/cmTC_346b4.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-eqKNqF'
+        Building CXX object CMakeFiles/cmTC_346b4.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_SSE4_1_1  -msse4.1 -o CMakeFiles/cmTC_346b4.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-eqKNqF/src.cxx
+        Linking CXX executable cmTC_346b4
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_346b4.dir/link.txt --verbose=1
+        /usr/bin/c++  -msse4.1 CMakeFiles/cmTC_346b4.dir/src.cxx.o -o cmTC_346b4
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-eqKNqF'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_SSE4_1_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "kmcmake/kmcmake_module.cmake:138 (CHECK_CXX_SOURCE_RUNS)"
+      - "kmcmake/kmcmake_module.cmake:247 (CHECK_SSE)"
+      - "CMakeLists.txt:57 (include)"
+    checks:
+      - "Performing Test CXX_HAS_SSE4_2_1"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-BcnJDF"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-BcnJDF"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CXX_HAS_SSE4_2_1_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-BcnJDF'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_71700/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_71700.dir/build.make CMakeFiles/cmTC_71700.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-BcnJDF'
+        Building CXX object CMakeFiles/cmTC_71700.dir/src.cxx.o
+        /usr/bin/c++ -DCXX_HAS_SSE4_2_1  -msse4.2 -o CMakeFiles/cmTC_71700.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-BcnJDF/src.cxx
+        Linking CXX executable cmTC_71700
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_71700.dir/link.txt --verbose=1
+        /usr/bin/c++  -msse4.2 CMakeFiles/cmTC_71700.dir/src.cxx.o -o cmTC_71700
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-BcnJDF'
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_HAS_SSE4_2_1_EXITCODE"
+      cached: true
+      stdout: |
+      stderr: |
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake:108 (try_compile)"
+      - "/usr/local/share/cmake-3.31/Modules/CheckCXXSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "/usr/local/share/cmake-3.31/Modules/FindThreads.cmake:99 (CHECK_CXX_SOURCE_COMPILES)"
+      - "/usr/local/share/cmake-3.31/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "cmake/kmcmake_demo_deps.cmake:59 (find_package)"
+      - "CMakeLists.txt:68 (include)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-ntyzTG"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-ntyzTG"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-ntyzTG'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_9032a/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_9032a.dir/build.make CMakeFiles/cmTC_9032a.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-ntyzTG'
+        Building CXX object CMakeFiles/cmTC_9032a.dir/src.cxx.o
+        /usr/bin/c++ -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_9032a.dir/src.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-ntyzTG/src.cxx
+        Linking CXX executable cmTC_9032a
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9032a.dir/link.txt --verbose=1
+        /usr/bin/ld: CMakeFiles/cmTC_9032a.dir/src.cxx.o: in function `main':
+        src.cxx:(.text+0x46): undefined reference to `pthread_create'
+        /usr/bin/ld: src.cxx:(.text+0x52): undefined reference to `pthread_detach'
+        /usr/bin/ld: src.cxx:(.text+0x5e): undefined reference to `pthread_cancel'
+        /usr/bin/ld: src.cxx:(.text+0x6f): undefined reference to `pthread_join'
+        collect2: error: ld returned 1 exit status
+        /usr/bin/c++ CMakeFiles/cmTC_9032a.dir/src.cxx.o -o cmTC_9032a
+        make[1]: *** [CMakeFiles/cmTC_9032a.dir/build.make:102: cmTC_9032a] Error 1
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-ntyzTG'
+        make: *** [Makefile:134: cmTC_9032a/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CheckLibraryExists.cmake:78 (try_compile)"
+      - "/usr/local/share/cmake-3.31/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "/usr/local/share/cmake-3.31/Modules/FindThreads.cmake:175 (_threads_check_lib)"
+      - "cmake/kmcmake_demo_deps.cmake:59 (find_package)"
+      - "CMakeLists.txt:68 (include)"
+    checks:
+      - "Looking for pthread_create in pthreads"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-wtdfOG"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-wtdfOG"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREADS_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-wtdfOG'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_08ad7/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_08ad7.dir/build.make CMakeFiles/cmTC_08ad7.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-wtdfOG'
+        Building CXX object CMakeFiles/cmTC_08ad7.dir/CheckFunctionExists.cxx.o
+        /usr/bin/c++   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_08ad7.dir/CheckFunctionExists.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-wtdfOG/CheckFunctionExists.cxx
+        Linking CXX executable cmTC_08ad7
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_08ad7.dir/link.txt --verbose=1
+        /usr/bin/ld: cannot find -lpthreads
+        collect2: error: ld returned 1 exit status
+        /usr/bin/c++  -DCHECK_FUNCTION_EXISTS=pthread_create CMakeFiles/cmTC_08ad7.dir/CheckFunctionExists.cxx.o -o cmTC_08ad7  -lpthreads
+        make[1]: *** [CMakeFiles/cmTC_08ad7.dir/build.make:102: cmTC_08ad7] Error 1
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-wtdfOG'
+        make: *** [Makefile:134: cmTC_08ad7/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake-3.31/Modules/CheckLibraryExists.cmake:78 (try_compile)"
+      - "/usr/local/share/cmake-3.31/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "/usr/local/share/cmake-3.31/Modules/FindThreads.cmake:176 (_threads_check_lib)"
+      - "cmake/kmcmake_demo_deps.cmake:59 (find_package)"
+      - "CMakeLists.txt:68 (include)"
+    checks:
+      - "Looking for pthread_create in pthread"
+    directories:
+      source: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-HLFyNH"
+      binary: "/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-HLFyNH"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/tools;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/cmake;/home/jeff/github/kumose/kmcmake/test/.work/kmcmake_demo/kmcmake/package"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREAD_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-HLFyNH'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_eb76f/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_eb76f.dir/build.make CMakeFiles/cmTC_eb76f.dir/build
+        make[1]: Entering directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-HLFyNH'
+        Building CXX object CMakeFiles/cmTC_eb76f.dir/CheckFunctionExists.cxx.o
+        /usr/bin/c++   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_eb76f.dir/CheckFunctionExists.cxx.o -c /home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-HLFyNH/CheckFunctionExists.cxx
+        Linking CXX executable cmTC_eb76f
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_eb76f.dir/link.txt --verbose=1
+        /usr/bin/c++  -DCHECK_FUNCTION_EXISTS=pthread_create CMakeFiles/cmTC_eb76f.dir/CheckFunctionExists.cxx.o -o cmTC_eb76f  -lpthread
+        make[1]: Leaving directory '/home/jeff/github/kumose/kmcmake/test/.work/simd_AVX2/CMakeFiles/CMakeScratch/TryCompile-HLFyNH'
+        
+      exitCode: 0
+...

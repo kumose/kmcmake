@@ -1,0 +1,253 @@
+
+# `kmcmake_cc_library`: Build Flexible, Production-Grade C++ Libraries with One Function
+
+`kmcmake_cc_library` is kmcmake’s core macro for defining C++ libraries—designed to eliminate repetitive
+ CMake boilerplate while supporting **fine-grained control over library properties** (visibility, dependencies,
+ includes, and more). It automatically generates both static (`_static`) and shared (`_shared`) library targets, 
+ enforces consistent naming conventions, and aligns with modern CMake’s target-based workflow.
+
+Whether you’re building a small internal library or a public-facing shared library, this macro streamlines the process 
+with sensible defaults and explicit configuration options.
+
+
+## Core Features at a Glance
+
+- **Dual Library Types**: Auto-generates both static (`lib<name>.a`/`.lib`) and shared (`lib<name>.so`/`.dll`) libraries.
+- **Consistent Target Naming**: Creates aliases like `namespace::name` (shared) and `namespace::name_static` 
+    (static) for reliable cross-project linking.
+- **Fine-Grained Visibility**: Separates `PUBLIC`/`PRIVATE` includes, defines, and dependencies (critical for modern 
+    CMake’s transitive property inheritance).
+- **Flexible Dependencies**: Supports standard CMake targets (e.g., `Threads::Threads`), system libraries, and third-party
+     packages.
+- **Zero Boilerplate**: Automates install rules, position-independent code (PIC), versioning (for shared libraries), 
+    and alias creation.
+
+
+## Full Syntax & Parameter Explanation
+
+The macro uses a declarative, key-value syntax. All parameters are optional except for `NAME` (auto-inferred
+ from the parent directory if missing) and `SOURCES`/`OBJECTS` (at least one is required to build the library).
+
+```cmake
+kmcmake_cc_library(
+    # Optional Flags (no values—just presence)
+    PUBLIC                # Mark library as public (installs targets/headers; default: INTERNAL)
+    EXCLUDE_SYSTEM        # Disable "SYSTEM" flag for include directories (default: enabled)
+
+    # Required/Optional Identifiers
+    NAME <library_name>   # Name of the library (e.g., "foo"); auto-inferred from folder if missing
+    NAMESPACE <ns>        # Namespace for the library (e.g., "myproject"); defaults to ${PROJECT_NAME}
+
+    # Source/Object Files (at least one of SOURCES/OBJECTS is required)
+    SOURCES <src1.cc> <src2.cc> ...  # C++ source files (.cc/.cpp)
+    OBJECTS <obj_target1> <obj_target2> ...  # Prebuilt object library targets (from kmcmake_cc_object)
+    HEADERS <hdr1.h> <hdr2.h> ...    # Header files (for IDE visibility; not required for compilation)
+
+    # Preprocessor Definitions
+    DEFINES <DEF1=1> <DEF2> ...      # Preprocessor defines (applied to this library only)
+
+    # Include Directories (separated by visibility)
+    INCLUDES <dir1> <dir2> ...       # PUBLIC include directories (inherited by linking targets)
+    PINCLUDES <dir1> <dir2> ...      # PRIVATE include directories (only used by this library)
+
+    # Dependencies (separated by visibility)
+    LINKS <target1> <target2> ...    # PUBLIC linked targets (inherited by linking targets)
+    PLINKS <target1> <target2> ...   # PRIVATE linked targets (only used by this library)
+    WLINKS <target1> <target2> ...   # PRIVATE "whole archive" linked targets (links entire library)
+
+    # Compiler Options (override default KMCMAKE_CXX_OPTIONS)
+    COPTS <c_flag1> <c_flag2> ...    # C compiler flags (for C sources)
+    CXXOPTS <cxx_flag1> <cxx_flag2> ...  # C++ compiler flags (for C++ sources)
+    CUOPTS <cuda_flag1> ...          # CUDA compiler flags (for CUDA sources, if applicable)
+
+    # Optional: Dependency Targets (for build order)
+    DEPS <dep_target1> <dep_target2> ...  # Targets this library depends on (ensures they build first)
+)
+```
+
+### Key Parameter Details
+| Parameter               | Purpose & Behavior                                                                 |
+|-------------------------|-----------------------------------------------------------------------------------|
+| `PUBLIC`                | Marks the library as "public": installs the library targets, headers, and export rules (for `find_package()`). Omit for internal libraries (not installed). |
+| `EXCLUDE_SYSTEM`        | By default, `INCLUDES`/`PINCLUDES` use CMake’s `SYSTEM` flag (suppresses warnings for system headers). Use this to disable that behavior. |
+| `NAME`                  | Core name of the library (e.g., "foo" → `libfoo.so`/`libfoo.a`). Auto-inferred from the parent directory if missing (e.g., `myproject/foo/` → `foo`). |
+| `NAMESPACE`             | Namespace for the library alias (e.g., "myproject" → `myproject::foo`). Defaults to `${PROJECT_NAME}`. |
+| `SOURCES`/`OBJECTS`     | `SOURCES`: C++ source files to compile. `OBJECTS`: Prebuilt object libraries (from `kmcmake_cc_object`) to link into the library. |
+| `DEFINES`               | Preprocessor macros (e.g., `USE_DOUBLE=1`). Applied **only to this library** (not inherited by linking targets—use for private defines). |
+| `INCLUDES`              | PUBLIC include directories: linking targets will automatically inherit these paths (e.g., `/path/to/public/include`). |
+| `PINCLUDES`             | PRIVATE include directories: only this library can use these paths (e.g., `/path/to/internal/include`). |
+| `LINKS`                 | PUBLIC linked targets: linking targets will inherit these dependencies (e.g., `spdlog::spdlog`). |
+| `PLINKS`                | PRIVATE linked targets: only this library links to these (e.g., `Threads::Threads`—not exposed to users). |
+| `WLINKS`                | "Whole archive" links: links the **entirety** of the target (useful for static libraries with hidden symbols). Applied as `$<LINK_LIBRARY:WHOLE_ARCHIVE,target>`. |
+| `COPTS`/`CXXOPTS`/`CUOPTS` | Override default compiler flags (from `KMCMAKE_CXX_OPTIONS`). Use for library-specific flags. |
+| `DEPS`                  | Build dependencies: ensures these targets are built **before** the library (e.g., Protobuf-generated targets). |
+
+
+## Critical Default Behaviors
+- **Dual Targets**: Always generates both `_static` (static library) and `_shared` (shared library) targets. Aliases:
+  - Shared: `namespace::name` (e.g., `myproject::foo` → `libfoo.so`).
+  - Static: `namespace::name_static` (e.g., `myproject::foo_static` → `libfoo.a`).
+- **PIC Enabled**: Position-independent code (PIC) is auto-enabled for object targets (required for shared libraries).
+- **Versioning**: Shared libraries get auto-versioned with `${PROJECT_VERSION}` (e.g., `libfoo.so.0.0.5`) and `SOVERSION`
+    set to `${PROJECT_VERSION_MAJOR}` (CMake best practice).
+- **Install Rules**: If `PUBLIC` is set, libraries are installed to standard paths:
+  - Shared: `${CMAKE_INSTALL_LIBDIR}` (e.g., `/usr/local/lib`).
+  - Static: `${CMAKE_INSTALL_LIBDIR}` (e.g., `/usr/local/lib`).
+  - Headers: `${CMAKE_INSTALL_INCLUDEDIR}` (auto-inherited from `INCLUDES`).
+- **Transitive Properties**: `INCLUDES` and `LINKS` are inherited by targets that link to your library (modern CMake’s 
+    "target-based" design).
+
+
+## Practical Usage Examples
+Below are common scenarios to demonstrate how to use `kmcmake_cc_library` in real projects.
+
+### Example 1: Basic Public Library (Shared + Static)
+Define a public library with sources, public/private includes, and dependencies:
+```cmake
+# myproject/foo/CMakeLists.txt
+kmcmake_cc_library(
+    PUBLIC                  # Mark as public (installs targets/headers)
+    NAME foo                # Library name: foo → libfoo.so/libfoo.a
+    NAMESPACE myproject     # Alias: myproject::foo (shared), myproject::foo_static (static)
+    SOURCES
+        foo.cc              # Core source file
+        foo_utils.cc        # Helper source file
+    HEADERS
+        foo.h               # Public header (for IDE visibility)
+        foo_utils.h         # Internal header (still included in install)
+    INCLUDES
+        ${PROJECT_SOURCE_DIR}/myproject  # Public include path: #include <foo.h>
+    PINCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}      # Private include path (internal headers)
+    DEFINES
+        FOO_USE_LOGGING=1    # Private define (only for foo library)
+    LINKS
+        spdlog::spdlog       # Public dependency (users must link spdlog too)
+    PLINKS
+        Threads::Threads     # Private dependency (users don’t need to know)
+    DEPS
+        myproject::api       # Build dependency (api target builds first)
+)
+```
+
+#### Result:
+- Generates targets: `foo_shared` (shared), `foo_static` (static).
+- Aliases: `myproject::foo` (shared), `myproject::foo_static` (static).
+- Installs: `libfoo.so`/`libfoo.a` to `/usr/local/lib`, headers to `/usr/local/include/myproject`.
+- Users linking to `myproject::foo` automatically get:
+  - `#include <foo.h>` (from `INCLUDES`).
+  - Link dependency on `spdlog::spdlog` (from `LINKS`).
+
+
+### Example 2: Internal Library (Not Installed)
+Define a private library for internal use (no install rules, no export):
+```cmake
+# myproject/internal/CMakeLists.txt
+kmcmake_cc_library(
+    NAME internal_utils     # No PUBLIC flag → not installed
+    NAMESPACE myproject
+    SOURCES
+        internal_utils.cc
+    PINCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}  # Only this library uses these includes
+    PLINKS
+        gflags::gflags      # Private dependency (internal use only)
+)
+```
+
+#### Result:
+- Generates targets: `internal_utils_shared`, `internal_utils_static`.
+- Aliases: `myproject::internal_utils`, `myproject::internal_utils_static`.
+- Not installed or exported—only usable within your project.
+
+
+### Example 3: Library with Object Targets
+Reuse prebuilt object libraries (from `kmcmake_cc_object`) to avoid redundant compilation:
+```cmake
+# First, define an object library (reusable across multiple libraries)
+kmcmake_cc_object(
+    NAME common_objects
+    SOURCES
+        common.cc
+        shared_functions.cc
+)
+
+# Use the object library in a new library
+kmcmake_cc_library(
+    PUBLIC
+    NAME bar
+    NAMESPACE myproject
+    OBJECTS
+        myproject::common_objects  # Reuse object library
+    SOURCES
+        bar.cc  # Additional source files
+    LINKS
+        myproject::foo  # Link to another library in the project
+)
+```
+
+
+### Example 4: Whole Archive Linking (WLINKS)
+Link an entire static library (useful for plugins or libraries with hidden symbols):
+```cmake
+kmcmake_cc_library(
+    PUBLIC
+    NAME plugin_loader
+    NAMESPACE myproject
+    SOURCES
+        plugin_loader.cc
+    WLINKS
+        myproject::plugin_core  # Link the entire plugin_core static library
+)
+```
+
+
+## How to Link to the Library
+Other targets (libraries or binaries) can link to your library using the generated aliases—consistent for both static
+and shared builds:
+```cmake
+# Link to shared library (default alias)
+target_link_libraries(my_app PRIVATE myproject::foo)
+
+# Link to static library (explicit _static alias)
+target_link_libraries(my_app PRIVATE myproject::foo_static)
+```
+
+For external projects (via `find_package()`), the aliases work identically:
+```cmake
+find_package(myproject REQUIRED)
+target_link_libraries(external_app PRIVATE myproject::foo)
+```
+
+
+## Key Best Practices
+1. **Use `PUBLIC` Sparingly**: Only mark libraries as `PUBLIC` if they’re intended for external use. Internal libraries
+    omit `PUBLIC` to avoid cluttering install directories.
+2. **Prefer Targets Over Paths**: Use CMake targets (e.g., `Threads::Threads`, `spdlog::spdlog`) in `LINKS`/`PLINKS` 
+     instead of raw library paths (e.g., `-lpthread`)—kmcmake 
+     handles transitive dependencies automatically.
+3. **Keep `DEFINES` Private**: Use `DEFINES` for library-specific macros. For macros that should be inherited by users, 
+     add them to `target_compile_definitions()` manually with `PUBLIC`.
+4. **Leverage `OBJECTS` for Reusability**: Use `kmcmake_cc_object` to create reusable object libraries—avoids compiling
+      the same sources multiple times across libraries.
+5. **Namespace Consistency**: Stick to the project’s default namespace (or a consistent custom namespace) to make linking 
+     intuitive for users.
+
+
+## Why This Macro Beats Raw CMake
+Raw CMake requires writing hundreds of lines to achieve what `kmcmake_cc_library` does in a few:
+- No manual `add_library()` for static/shared targets.
+- No manual `set_target_properties()` for versioning, PIC, or output names.
+- No manual `target_include_directories()`/`target_link_libraries()` for transitive properties.
+- No manual `install()`/`export()` rules for public libraries.
+- No manual alias creation (e.g., `add_alias_target()`).
+
+This macro encapsulates modern CMake best practices while keeping configuration explicit and flexible—no "black magic" behind the scenes.
+
+
+## Final Notes
+- **CUDA Support**: The `CUOPTS` parameter enables CUDA-specific flags (for libraries with `.cu` sources).
+- **Unparsed Arguments**: The macro warns about unrecognized parameters to catch typos (e.g., `LINKED_TARGETS` instead of `LINKS`).
+- **Compatibility**: Generated targets are fully compatible with native CMake functions—you can extend them with `target_compile_options()` or `set_target_properties()` if needed.
+
+`kmcmake_cc_library` is the backbone of library creation in kmcmake—balancing simplicity (sensible defaults) with control (fine-grained parameters) to support projects of all sizes.
