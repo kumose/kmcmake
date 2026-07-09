@@ -18,5 +18,5 @@ kmcmake_cc_binary(
         NAME foo_ex
         SOURCES foo_ex.cc
         DEPS ${PROJECT_NAME}::foo ${KMCMAKE_DEPS_LINK}
-        COPTS ${USER_CXX_FLAGS}
+        COPTS ${KMCMAKE_CXX_OPTIONS}
 )

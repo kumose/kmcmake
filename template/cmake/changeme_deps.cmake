@@ -47,14 +47,7 @@ endif ()
 
 if (KMCMAKE_BUILD_TEST)
     enable_testing()
-    #include(require_gtest)
-    #include(require_gmock)
-    #include(require_doctest)
 endif (KMCMAKE_BUILD_TEST)
-
-if (KMCMAKE_BUILD_BENCHMARK)
-    #include(require_benchmark)
-endif ()
 
 find_package(Threads REQUIRED)
 kmcmake_private_find_package(Threads REQUIRED)
@@ -73,13 +66,7 @@ set(KMCMAKE_DEPS_LINK
 list(REMOVE_DUPLICATES KMCMAKE_DEPS_LINK)
 kmcmake_print_list_label("Denpendcies:" KMCMAKE_DEPS_LINK)
 
-############################################################
-# for binary
-############################################################
-set(KMCMAKE_STATIC_BIN_OPTION)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    list(APPEND KMCMAKE_STATIC_BIN_OPTION -static-libgcc -static-libstdc++)
-endif ()
+
 
 
 

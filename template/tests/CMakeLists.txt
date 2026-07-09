@@ -13,27 +13,7 @@
 # limitations under the License.
 #
 
-#[[kmcmake_cc_test(
-        NAME custom_comparator_test
-        SOURCES custom_comparator_test.cc
-        DEPS turbo::turbo ${KMCMAKE_DEPS_LINK} ${GTEST_LIB} ${GTEST_MAIN_LIB}
-        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
-)]]
-#[[
-kmcmake_cc_test(
-        NAME foo_test
-        SOURCES foo_test.cc
-        DEPS ${PROJECT}::foo ${KMCMAKE_DEPS_LINK} gtest gtest_main
-        COPTS ${KMCMAKE_CXX_OPTIONS}
-)
 
-kmcmake_cc_test(
-        NAME foo_doctest
-        SOURCES foo_doctest.cc
-        DEPS ${PROJECT}::foo ${KMCMAKE_DEPS_LINK} doctest
-        CXXOPTS ${KMCMAKE_CXX_OPTIONS}
-)
-]]
 
 configure_file(${PROJECT_SOURCE_DIR}/tests/config.h.in ${PROJECT_SOURCE_DIR}/tests/config.h @ONLY)
 

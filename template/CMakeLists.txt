@@ -25,7 +25,9 @@ if(NOT CHANGEME)
 endif ()
 
 string(TIMESTAMP CURRENT_DATE "%Y-%m-%d")
-set(TM_KMCMAKE_VERSION 1.0.0)
+set(TM_KMCMAKE_VERSION 1.1.0)
+string(TOUPPER ${CHANGEME} CHANGEME_UP)
+string(TOLOWER ${CHANGEME} CHANGEME_LOW)
 
 configure_file(${PROJECT_SOURCE_DIR}/CMakeLists.txt.in ${PROJECT_BINARY_DIR}/CMakeLists.txt @ONLY)
 configure_file(${PROJECT_SOURCE_DIR}/README.md.in ${PROJECT_BINARY_DIR}/README.md @ONLY)
@@ -38,7 +40,6 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_config.cmake.in ${PROJECT_BI
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_cpack_config.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_cpack_config.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_cxx_config.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_cxx_config.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_deps.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_deps.cmake COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_test.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_test.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_user_option.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_user_option.cmake COPYONLY)
 file(COPY ${PROJECT_SOURCE_DIR}/cmake/deb DESTINATION ${PROJECT_BINARY_DIR}/cmake)
 file(COPY ${PROJECT_SOURCE_DIR}/cmake/rpm DESTINATION ${PROJECT_BINARY_DIR}/cmake)
@@ -61,6 +62,7 @@ install(FILES ${PROJECT_SOURCE_DIR}/pyproject.toml DESTINATION .)
 install(FILES ${PROJECT_SOURCE_DIR}/build-pypi-linux.sh DESTINATION .)
 install(FILES ${PROJECT_SOURCE_DIR}/release-pypi-linux.sh DESTINATION .)
 install(FILES ${PROJECT_SOURCE_DIR}/requirements.txt DESTINATION .)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/docs DESTINATION .)
 # benchmark
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/benchmark DESTINATION .)
 # kmcmake
@@ -76,6 +78,8 @@ install(FILES ${PROJECT_SOURCE_DIR}/changeme/foo.h DESTINATION ${CHANGEME})
 install(FILES ${PROJECT_BINARY_DIR}/${CHANGEME}/main.cc DESTINATION ${CHANGEME})
 install(FILES ${PROJECT_SOURCE_DIR}/changeme/version.h.in DESTINATION ${CHANGEME})
 install(FILES ${PROJECT_BINARY_DIR}/${CHANGEME}/foo.cc DESTINATION ${CHANGEME})
+configure_file(${PROJECT_SOURCE_DIR}/changeme/skills.h.in ${PROJECT_BINARY_DIR}/${CHANGEME}/skills.h @ONLY)
+install(FILES ${PROJECT_BINARY_DIR}/${CHANGEME}/skills.h DESTINATION ${CHANGEME})
 
 # test
 configure_file(${PROJECT_SOURCE_DIR}/tests/foo_test.cc.in ${PROJECT_BINARY_DIR}/tests/foo_test.cc)

@@ -46,6 +46,7 @@ set(KMCMAKE_VERSION @TM_KMCMAKE_VERSION@)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/kmcmake)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/kmcmake/tools)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/kmcmake/arch)
 ##################################################################
 # add this for ${PROJECT_NAME} 's cmake include
 ##################################################################
@@ -67,7 +68,6 @@ include(@CHANGEME@_user_option OPTIONAL)
 
 include(@CHANGEME@_deps)
 include(@CHANGEME@_cxx_config)
-include(@CHANGEME@_test)
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} UPPERCASE_BUILD_TYPE)
 configure_file(${PROJECT_SOURCE_DIR}/@CHANGEME@/version.h.in ${PROJECT_SOURCE_DIR}/@CHANGEME@/version.h @ONLY)
@@ -165,7 +165,6 @@ if(NOT PYTHON_EXTENSION)
             ${PROJECT_BINARY_DIR}/package/${PROJECT_NAME}.pc)
 
     install(FILES ${PROJECT_BINARY_DIR}/package/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-    #include(@CHANGEME@_cpack_config)
 endif()
 kmcmake_print("@CHANGEME@ cmake build system is created by kmcmake package manager tools")
 kmcmake_print("kmcmake: https://github.com/kumose/kmcmake")
