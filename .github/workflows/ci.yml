@@ -29,6 +29,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+          - ubuntu-20.04
           - ubuntu-24.04-arm
           - macos-latest
           - windows-latest
@@ -56,3 +57,43 @@ jobs:
       - name: Run tests
         working-directory: ${{ runner.temp }}/testproj
         run: ctest --test-dir build --output-on-failure
+
+  centos:
+    name: centos-stream9
+    runs-on: ubuntu-latest
+    container: centos/stream9
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dnf install -y gcc-c++ python3-pip git
+          pip3 install cmake
+
+      - name: Configure template
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
+
+      - name: Install generated project
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          cmake --install build-template --prefix /tmp/testproj
+
+      - name: Configure generated project
+        working-directory: /tmp/testproj
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build generated project
+        working-directory: /tmp/testproj
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          cmake --build build --parallel
+
+      - name: Run tests
+        working-directory: /tmp/testproj
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          ctest --test-dir build --output-on-failure
