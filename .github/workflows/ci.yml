@@ -1,0 +1,58 @@
+# Copyright (C) Kumo inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure template
+        run: >
+          cmake -S template -B build-template
+          -DCHANGEME=testproj
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Install generated project
+        run: cmake --install build-template --prefix ${{ runner.temp }}/testproj
+
+      - name: Configure generated project
+        working-directory: ${{ runner.temp }}/testproj
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build generated project
+        working-directory: ${{ runner.temp }}/testproj
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        working-directory: ${{ runner.temp }}/testproj
+        run: ctest --test-dir build --output-on-failure
