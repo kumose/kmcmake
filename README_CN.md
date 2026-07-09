@@ -1,6 +1,9 @@
 # kmcmake
 
+
 [English](README.md)
+
+[![CI](https://github.com/kumose/kmcmake/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/kumose/kmcmake/actions/workflows/ci.yml)
 
 
 [more docs](https://pub.kumose.cc/kmcmake/)

@@ -2,7 +2,7 @@
 
 cmake c/c++ build system
 
-[![CI](https://github.com/kumose/kmcmake/actions/workflows/ci.yml/badge.svg)](https://github.com/kumose/kmcmake/actions/workflows/ci.yml)
+[![CI](https://github.com/kumose/kmcmake/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/kumose/kmcmake/actions/workflows/ci.yml)
 
 
 ```bash
