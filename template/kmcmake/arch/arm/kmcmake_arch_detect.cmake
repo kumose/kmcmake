@@ -30,9 +30,17 @@ set(KMCMAKE_ARM_HAS_NEON FALSE)
 set(KMCMAKE_ARM_HAS_VFPv4 FALSE)
 set(KMCMAKE_ARM_HAS_FMA FALSE)
 
-set(NEON_FLAG "-mfpu=neon")
-set(VFPv4_FLAG "-mfpu=vfpv4")
-set(FMA_FLAG "-mfpu=neon -mfma")
+# AI: On AArch64 (ARM64), NEON/FMA are part of the base ISA — no -mfpu flags needed.
+# AI: On ARM32, -mfpu flags are required for detection and compilation.
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(NEON_FLAG  "")
+    set(VFPv4_FLAG "")
+    set(FMA_FLAG   "")
+else()
+    set(NEON_FLAG  "-mfpu=neon")
+    set(VFPv4_FLAG "-mfpu=vfpv4")
+    set(FMA_FLAG   "-mfpu=neon -mfma")
+endif()
 
 include(CheckCXXSourceRuns)
 
