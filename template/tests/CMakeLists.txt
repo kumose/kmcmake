@@ -71,13 +71,12 @@ kmcmake_cc_test(
         EXT
 )
 
-# base_args_test_fail fail
+#[[ base_args_test_fail fail
 kmcmake_cc_test_ext(
         NAME args_test
         MODULE base
         ALIAS fail
         FAIL_EXP "[^a-z]Error;ERROR;Failed"
-        DISABLED
 )
 
 # base_args_test_fail fail
@@ -87,10 +86,9 @@ kmcmake_cc_test_ext(
         ALIAS fail_args
         ARGS "Failed"
         FAIL_EXP "[^a-z]Error;ERROR;Failed"
-        DISABLED
-)
+)]]
 
-# base_args_test_skip fail
+#[[ base_args_test_skip fail
 kmcmake_cc_test_ext(
         NAME args_test
         MODULE base
@@ -98,10 +96,7 @@ kmcmake_cc_test_ext(
         PASS_EXP "pass;Passed"
         FAIL_EXP "[^a-z]Error;ERROR;Failed"
         SKIP_EXP "[^a-z]Skip" "SKIP" "Skipped"
-        DISABLED
-)
-
-# base_args_test_skip fail
+)]]
 kmcmake_cc_test_ext(
         NAME args_test
         MODULE base

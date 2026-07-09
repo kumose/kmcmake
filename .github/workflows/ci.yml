@@ -61,7 +61,7 @@ jobs:
   centos:
     name: centos-stream9
     runs-on: ubuntu-latest
-    container: centos/stream9
+    container: quay.io/centos/centos:stream9
     steps:
       - uses: actions/checkout@v4
 
