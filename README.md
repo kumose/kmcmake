@@ -1,6 +1,10 @@
 # kmcmake
 
+
 [中文版](README_CN.md)
+
+[![CI](https://github.com/kumose/kmcmake/actions/workflows/ci.yml/badge.svg)](https://github.com/kumose/kmcmake/actions/workflows/ci.yml)
+
 
 [more docs](https://pub.kumose.cc/kmcmake/)
 
