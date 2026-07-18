@@ -46,10 +46,10 @@ verify_simd_header() {
   if ! python3 - <<PY
 from pathlib import Path
 content = Path("${GEN_DIR}/${GEN_NAME}/version.h").read_text(encoding="utf-8")
-raise SystemExit(0 if "KMCMAKE_RUNTIME_SIMD_LEVEL" in content else 1)
+raise SystemExit(0 if "SIMD_LEVEL" in content else 1)
 PY
   then
-    echo "ERROR: KMCMAKE_RUNTIME_SIMD_LEVEL missing in version.h"
+    echo "ERROR: SIMD_LEVEL macro missing in version.h"
     exit 1
   fi
 }
@@ -101,7 +101,7 @@ run_simd_level_checks() {
     if ! python3 - <<PY
 from pathlib import Path
 content = Path("${GEN_DIR}/${GEN_NAME}/version.h").read_text(encoding="utf-8")
-needle = 'KMCMAKE_RUNTIME_SIMD_LEVEL "${level}"'
+needle = 'SIMD_LEVEL "${level}"'
 raise SystemExit(0 if needle in content else 1)
 PY
     then

@@ -91,13 +91,7 @@ if(NOT PYTHON_EXTENSION)
     ##############################################
     # header installing
     #############################################
-    install(DIRECTORY ${PROJECT_NAME}
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING
-            PATTERN "*.inc"
-            PATTERN "*.h"
-            PATTERN "*.hpp"
-            )
+    include(@CHANGEME@_install_header)
 
     # Layout. This works for all platforms:
     #   * <prefix>/@CMAKE_INSTALL_LIBDIR@/cmake/<PROJECT-NAME>
