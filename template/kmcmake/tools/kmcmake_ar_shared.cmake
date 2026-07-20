@@ -71,6 +71,10 @@ function(kmcmake_ar_shared)
             VERSION ${${PROJECT_NAME}_VERSION}
             SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR}
     )
+    # MSVC needs exported symbols to emit the import .lib; SHARE is independent of BUILD_SHARED_LIBS.
+    if (MSVC)
+        set_target_properties(${_target} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    endif ()
     add_library(${ARG_NAMESPACE}::${ARG_NAME} ALIAS ${_target})
 
     foreach (obj IN LISTS ARG_OBJECTS)
