@@ -19,23 +19,61 @@ on:
     branches: [dev, main]
   pull_request:
     branches: [dev, main]
+  workflow_dispatch:
 
+# Primary: x-ci bootstraps kmpkg. Optional empty toolchain is still valid —
+# see no-kmpkg jobs for that path.
 jobs:
-  test:
-    name: ${{ matrix.os }}
+  ci:
+    uses: kumose/x-ci/.github/workflows/ci-template.yml@v1
+    with:
+      config-command: |
+        cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
+        cmake --install build-template --prefix /tmp/testproj
+        cmake --preset=default -S /tmp/testproj -DKMCMAKE_BUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
+      build-command: |
+        cmake --build /tmp/testproj/build --parallel
+      test-command: |
+        ctest --test-dir /tmp/testproj/build --output-on-failure -j1
+      skip-macos-x86: true
+      skip-windows: true
+      skip-windows-arm64: true
+      skip-linux-musl-arm64: true
+
+  # MSVC + kmpkg x64-windows (shared x-ci Windows job mixes MinGW with MSVC packages).
+  windows-msvc:
+    uses: ./.github/workflows/windows.yml
+
+  # Standalone: no kmpkg bootstrap — empty $KMPKG_CMAKE / toolchain.
+  no-kmpkg:
+    name: no-kmpkg ${{ matrix.os }} (${{ matrix.preset }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - ubuntu-22.04
-          - ubuntu-24.04-arm
-          - macos-latest
-          - windows-latest
+        include:
+          - os: ubuntu-latest
+            preset: default
+            build_dir: build
+          - os: ubuntu-latest
+            preset: ninja
+            build_dir: build-ninja
+          - os: macos-latest
+            preset: default
+            build_dir: build
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install ninja
+        if: matrix.preset == 'ninja'
+        run: |
+          if [ "$(uname)" = "Darwin" ]; then
+            brew install ninja
+          else
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ninja-build
+          fi
 
       - name: Configure template
         run: >
@@ -46,20 +84,25 @@ jobs:
       - name: Install generated project
         run: cmake --install build-template --prefix ${{ runner.temp }}/testproj
 
-      - name: Configure generated project
+      - name: Configure generated project (empty toolchain)
         working-directory: ${{ runner.temp }}/testproj
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        env:
+          KMPKG_CMAKE: ""
+        run: >
+          cmake --preset=${{ matrix.preset }}
+          -DKMCMAKE_BUILD_TEST=ON
+          -DCMAKE_BUILD_TYPE=Release
 
       - name: Build generated project
         working-directory: ${{ runner.temp }}/testproj
-        run: cmake --build build --parallel --config Release
+        run: cmake --build ${{ matrix.build_dir }} --parallel
 
       - name: Run tests
         working-directory: ${{ runner.temp }}/testproj
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir ${{ matrix.build_dir }} --output-on-failure -j1
 
-  centos:
-    name: centos-stream9
+  no-kmpkg-centos:
+    name: no-kmpkg centos-stream9 (default)
     runs-on: ubuntu-latest
     container: quay.io/centos/centos:stream9
     steps:
@@ -67,7 +110,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          dnf install -y gcc-c++ python3-pip git
+          dnf install -y gcc-c++ python3-pip git make
           pip3 install cmake
 
       - name: Configure template
@@ -80,20 +123,22 @@ jobs:
           export PATH="/usr/local/bin:$PATH"
           cmake --install build-template --prefix /tmp/testproj
 
-      - name: Configure generated project
+      - name: Configure generated project (empty toolchain)
         working-directory: /tmp/testproj
+        env:
+          KMPKG_CMAKE: ""
         run: |
           export PATH="/usr/local/bin:$PATH"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --preset=default -DKMCMAKE_BUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
 
       - name: Build generated project
         working-directory: /tmp/testproj
         run: |
           export PATH="/usr/local/bin:$PATH"
-          cmake --build build --parallel --config Release
+          cmake --build build --parallel
 
       - name: Run tests
         working-directory: /tmp/testproj
         run: |
           export PATH="/usr/local/bin:$PATH"
-          ctest --test-dir build -C Release --output-on-failure
+          ctest --test-dir build --output-on-failure -j1

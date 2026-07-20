@@ -45,3 +45,5 @@ _skbuild
 .vscode
 # Added by kmdo pkg init:
 dist/
+# Test build artifacts
+test/.work/

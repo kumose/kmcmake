@@ -19,6 +19,7 @@
 kmcmake_cc_library(
         NAMESPACE ${PROJECT_NAME}
         NAME foo
+        SHARE
         SOURCES
         foo.cc
         CXXOPTS

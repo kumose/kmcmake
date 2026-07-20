@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-07-18 — v1.4.1 (lothar)
+
+### Template Restructure
+- Decoupled framework (`kmcmake/`) from user config (`cmake/`) — template upgrades no longer overwrite user settings.
+- Created `template/docs/AI.md` with constraints, workflow, API reference, skills.h convention, variable table, and common modification scenarios.
+- Created `template/docs/AI_UPGRADE.md` with step-by-step migration from old to new structure.
+- Created `template/changeme/skills.h.in` — Doxygen-style AI-readable project summary.
+- Added `@CHANGEME_LOW@` template variable for lowercase project name.
+
+### Shared Library — Per-Library Opt-In
+- Removed global `KMCMAKE_ENABLE_SHARE` option from `kmcmake_option.cmake`.
+- Added `SHARE` boolean option to `kmcmake_cc_library` — shared library is built/installed only when present.
+- Changed shared library output name to `<name>_shared` (e.g. `libfoo_shared.so`) to avoid Windows import-lib collision with static output.
+- Shared alias `<namespace>::<name>` is only created when `SHARE` is set.
+
+### Bug Fixes
+- Fixed `elseif()` → `else()` bug in `kmcmake_module.cmake`.
+- Fixed macOS ARM64 build: NEON/VFPv4/FMA flags are conditional on 32-bit ARM; AppleClang ARM64 randen flags set to empty.
+- Fixed `KMCMAKE_DISTRO_VERSION_ID` variable name.
+- Renamed `USER_CXX_FLAGS` → `KMCMAKE_CXX_OPTIONS`.
+- Fixed MSVC ARM arch flags: `-march` and `-mfpu` flags are now empty on MSVC (unsupported).
+- Fixed MSVC ARM randen flags: `-march=armv8-a+crypto` / `-mfpu=neon` excluded on MSVC.
+- Fixed x86 SSE4 flags: removed trailing semicolons that created empty string items.
+
+### CI
+- Created `.github/workflows/ci.yml` with matrix: ubuntu-latest, ubuntu-22.04, ubuntu-24.04-arm, macos-latest, windows-latest, centos:stream9.
+- Added CI badge (`?branch=master`) to root `README.md`, `README_CN.md`, and `template/README.md`.
+- Disabled intentionally-failing demo tests (bracket-comment in `tests/CMakeLists.txt`).
+
 ## 2026-04-07
 
 ### Practical Outcome

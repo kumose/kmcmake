@@ -25,7 +25,7 @@ if(NOT CHANGEME)
 endif ()
 
 string(TIMESTAMP CURRENT_DATE "%Y-%m-%d")
-set(TM_KMCMAKE_VERSION 1.2.0)
+set(TM_KMCMAKE_VERSION 1.4.3)
 string(TOUPPER ${CHANGEME} CHANGEME_UP)
 string(TOLOWER ${CHANGEME} CHANGEME_LOW)
 
@@ -40,6 +40,7 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_config.cmake.in ${PROJECT_BI
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_cpack_config.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_cpack_config.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_cxx_config.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_cxx_config.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_deps.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_deps.cmake COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_install_header.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_install_header.cmake COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/cmake/changeme_user_option.cmake ${PROJECT_BINARY_DIR}/cmake/${CHANGEME}_user_option.cmake COPYONLY)
 file(COPY ${PROJECT_SOURCE_DIR}/cmake/deb DESTINATION ${PROJECT_BINARY_DIR}/cmake)
 file(COPY ${PROJECT_SOURCE_DIR}/cmake/rpm DESTINATION ${PROJECT_BINARY_DIR}/cmake)
