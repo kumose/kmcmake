@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-21 — v1.5.1
+
+### Bug Fixes
+- Template `.gitignore`: ignore `build-ninja` (ninja preset output dir).
+
 ## 2026-07-21 — v1.5.0
 
 Stable baseline for the 1.4-style layered template (`kmcmake/` framework vs `cmake/` user config).

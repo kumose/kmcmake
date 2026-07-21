@@ -6,7 +6,7 @@
 
 [Website / docs](https://pub.kumose.cc/kmcmake/) · [Changelog](CHANGELOG.md)
 
-**Current template version: 1.5.0**
+**Current template version: 1.5.1**
 
 ## What is kmcmake?
 
