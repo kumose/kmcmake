@@ -1,5 +1,19 @@
 # 更新日志
 
+## 2026-07-21 — v1.5.0
+
+1.4 分层模版（`kmcmake/` 框架 vs `cmake/` 用户配置）的稳定基线。
+
+### Bug 修复
+- `kmcmake_cc_library`：将 `LINKS` / `PLINKS` 转发到内部 `*_OBJECT` 编译单元，使依赖的 usage requirements（头文件路径、宏定义）在编译 `SOURCES` 时生效。
+
+### 文档
+- 新增 `template/docs/AI_UPGRADE_1_5.md` — 面向 AI 的操作型升级指南（在 `/tmp` 生成骨架、替换 `kmcmake/`、拷贝 `CMakePresets.json`）。
+
+### CI
+- 主 CI 从 x-ci `@v1`（`ci-template.yml`）迁移到平台级 `@v2`（`ubuntu` / `alpine` / `centos` / `mac` / `windows`）。
+- 移除本地 `windows.yml`；Windows MSVC + Ninja 由 x-ci v2 `windows.yml` 覆盖。
+
 ## 2026-07-18 — v1.4.1 (lothar)
 
 ### 模版重构

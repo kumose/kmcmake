@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-21 — v1.5.0
+
+Stable baseline for the 1.4-style layered template (`kmcmake/` framework vs `cmake/` user config).
+
+### Bug Fixes
+- `kmcmake_cc_library`: forward `LINKS` / `PLINKS` to the internal `*_OBJECT` compile unit so dependency usage requirements (includes, defines) apply when compiling `SOURCES`.
+
+### Docs
+- Added `template/docs/AI_UPGRADE_1_5.md` — operational upgrade guide for AI agents (generate skeleton under `/tmp`, replace `kmcmake/`, copy `CMakePresets.json`).
+
+### CI
+- Migrated primary CI from x-ci `@v1` (`ci-template.yml`) to platform workflows `@v2` (`ubuntu` / `alpine` / `centos` / `mac` / `windows`).
+- Dropped local `windows.yml`; Windows MSVC + Ninja is covered by x-ci v2 `windows.yml`.
+
 ## 2026-07-18 — v1.4.1 (lothar)
 
 ### Template Restructure
