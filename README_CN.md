@@ -6,7 +6,7 @@
 
 [网站 / 文档](https://pub.kumose.cc/kmcmake/) · [更新日志](CHANGELOG_CN.md)
 
-**当前模板版本：1.5.0**
+**当前模板版本：1.5.1**
 
 ## 项目是什么？
 

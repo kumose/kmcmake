@@ -1,5 +1,10 @@
 # 更新日志
 
+## 2026-07-21 — v1.5.1
+
+### Bug 修复
+- 模版 `.gitignore`：忽略 `build-ninja`（ninja preset 输出目录）。
+
 ## 2026-07-21 — v1.5.0
 
 1.4 分层模版（`kmcmake/` 框架 vs `cmake/` 用户配置）的稳定基线。
