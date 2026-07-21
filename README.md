@@ -1,131 +1,116 @@
 # kmcmake
 
-
 [中文版](README_CN.md)
 
 [![CI](https://github.com/kumose/kmcmake/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/kumose/kmcmake/actions/workflows/ci.yml)
 
+[Website / docs](https://pub.kumose.cc/kmcmake/) · [Changelog](CHANGELOG.md)
 
-[more docs](https://pub.kumose.cc/kmcmake/)
+**Current template version: 1.5.0**
 
-A standardized C/C++ build system based on CMake for the kumo ecosystem, providing out-of-the-box build templates and toolchain integration to unify the build process across projects in the kumo system.
+## What is kmcmake?
 
-## Core Capabilities
-- Standardized C/C++ compilation configurations (supporting multiple compilers and systems)
-- One-click generation of project-specific CMake configuration templates
-- Integration with the kumo ecosystem's `kmdo` toolchain to simplify project initialization
+**kmcmake** is a CMake project template and thin build framework for C/C++ libraries and tools in the [kumo](https://github.com/kumose) ecosystem.
 
-## Quick Start
-### Method 1: Create a Project Manually via CMake Template
+You generate a project once from `template/`. Each generated repo has two layers:
+
+| Layer | Path | Who owns it |
+|-------|------|-------------|
+| Framework | `kmcmake/` | Replaced on upgrade — do not hand-edit |
+| User config | `cmake/` | Your deps, options, flags aggregation |
+| Product code | `<project>/`, `tests/`, … | Your sources |
+
+Day-to-day you declare targets with helpers such as `kmcmake_cc_library`, `kmcmake_cc_binary`, `kmcmake_cc_test`, and (optionally) wire [kmpkg](https://github.com/kumose/kmpkgcore) via `CMakePresets.json` (`KMPKG_CMAKE`). kmpkg is optional: empty toolchain still works with system packages.
+
+## Features
+
+- Layered template: upgrade-safe `kmcmake/` vs editable `cmake/`
+- Target macros: library (static + optional `SHARE`), object, interface, binary, test, benchmark, protobuf
+- Presets: `default` (Unix Makefiles → `build/`) and `ninja` (→ `build-ninja/`), including Windows MSVC + Ninja
+- Per-arch SIMD detection (x86 / ARM) → `KMCMAKE_CXX_OPTIONS` and generated `version.h` macros
+- Packaging hooks (CPack / deb / rpm) and optional Python packaging scripts
+- CI via [x-ci](https://github.com/kumose/x-ci) `@v2` (Linux glibc/musl/CentOS, macOS, Windows MSVC)
+- AI-oriented docs under `template/docs/` (constraints, API, upgrade steps)
+
+## Template docs (`template/docs/`)
+
+| Doc | Purpose |
+|-----|---------|
+| [AI.md](template/docs/AI.md) | AI context: constraints, layout, API, conventions |
+| [AI_UPGRADE.md](template/docs/AI_UPGRADE.md) | Legacy → layered `kmcmake/` + `cmake/` migration |
+| [AI_UPGRADE_1_5.md](template/docs/AI_UPGRADE_1_5.md) | 1.4.x / early 1.5 → **1.5.0+** upgrade (ops for AI) |
+
+### For AI agents
+
+**Before changing this repo or upgrading a consumer project, read the docs above yourself** (do not guess from memory):
+
+1. Always start with [`template/docs/AI.md`](template/docs/AI.md).
+2. Upgrading an existing 1.4-style project → follow [`template/docs/AI_UPGRADE_1_5.md`](template/docs/AI_UPGRADE_1_5.md) (skeleton under `/tmp`, replace `kmcmake/`, copy `CMakePresets.json`).
+3. Still on pre-v1 flat layout → [`template/docs/AI_UPGRADE.md`](template/docs/AI_UPGRADE.md) first.
+
+These files are installed into generated projects as `docs/` when you run `cmake --install` from `template/`.
+
+## Requirements
+
+- CMake **≥ 3.31** to *generate* from this repo’s `template/`
+- Generated projects: CMake **≥ 3.20**, C++17+ toolchain (GCC / Clang / AppleClang / MSVC)
+- Optional: [kmpkg](https://github.com/kumose/kmpkgcore), [kmdo](https://github.com/kumose/kmdo), Ninja
+
+## Quick start
+
+### Generate a project from the template
+
 ```bash
-# 1. Generate configurations from the template (replace myproject with your project name)
-cmake -S ./template -B build -DCHANGEME=myproject
-# 2. Install the generated configurations to the target project directory (replace your/path with the actual project path)
-cmake --install build --prefix your/path
+cmake -S ./template -B build-template -DCHANGEME=myproject
+cmake --install build-template --prefix /path/to/myproject
 ```
 
-### Method 2: One-Click Generation via kmdo (Recommended)
-Execute the following command in the root directory of your project to automatically generate CMake configurations adapted to your project name:
+### Or via kmdo (if installed)
+
 ```bash
-# Replace values with your actual project name/path
-kmdo kmpkg gencmake -n your-project-name -o your-path
+kmdo kmpkg gencmake -n myproject -o /path/to/myproject
 ```
 
-## Directory Structure (Core of Template)
-```
-tree myy/
-myy/
-├── benchmark
-│   ├── CMakeLists.txt
-│   └── config.h.in
-├── build-pypi-linux.sh
-├── cmake
-│   ├── deb
-│   │   ├── postinst.in
-│   │   ├── postrm
-│   │   ├── preinst
-│   │   └── prerm
-│   ├── myproject_config.cmake.in
-│   ├── myproject_cpack_config.cmake
-│   ├── myproject_cxx_config.cmake
-│   ├── myproject_deps.cmake
-│   ├── myproject_test.cmake
-│   └── rpm
-│       ├── postinst.in
-│       ├── postrm
-│       ├── preinst
-│       └── prerm
-├── CMakeLists.txt
-├── CMakePresets.json
-├── examples
-│   ├── CMakeLists.txt
-│   └── foo_ex.cc
-├── kmcmake
-│   ├── copts
-│   │   ├── copts.py
-│   │   └── generate_copts.py
-│   ├── kmcmake_module.cmake
-│   ├── kmcmake_option.cmake
-│   ├── package
-│   │   ├── CPack.STGZ_Header.sh.in
-│   │   ├── pkg_dump_template.pc.in
-│   │   └── README.md
-│   ├── README.md
-│   └── tools
-│       ├── default_setting.cmake
-│       ├── git_commit.cmake
-│       ├── kmcmake_cc_benchmark.cmake
-│       ├── kmcmake_cc_binary.cmake
-│       ├── kmcmake_cc_interface.cmake
-│       ├── kmcmake_cc_library.cmake
-│       ├── kmcmake_cc_object.cmake
-│       ├── kmcmake_cc_proto.cmake
-│       ├── kmcmake_cc_test.cmake
-│       └── simd_detect.cmake
-├── LICENSE
-├── myproject
-│   ├── api.h
-│   ├── CMakeLists.txt
-│   ├── foo.cc
-│   ├── foo.h
-│   ├── main.cc
-│   └── version.h.in
-├── pyproject.toml
-├── README_CN.md
-├── README.md
-├── release-pypi-linux.sh
-├── requirements.txt
-├── setup.py
-└── tests
-    ├── args_test.cc
-    ├── CMakeLists.txt
-    ├── config.h.in
-    ├── foo_doctest.cc
-    ├── foo_test.cc
-    ├── pass_test.cc
-    └── raw_test.cc
+### Build a generated project
+
+```bash
+cd /path/to/myproject
+# Optional: export KMPKG_HOME / KMPKG_CMAKE after kmpkg bootstrap
+cmake --preset=default -DKMCMAKE_BUILD_TEST=ON    # or --preset=ninja
+cmake --build build --parallel                    # or build-ninja
+ctest --test-dir build --output-on-failure
 ```
 
-## Key Parameter Explanation
-| Parameter  | Description                                  | Example Value |
-|------------|----------------------------------------------|---------------|
-| CHANGEME   | Placeholder in the template, replaced with the project name | myproject     |
-| --prefix   | Installation path for configuration files    | ./my-project  |
+Edit user config under `cmake/` (`*_deps.cmake`, `*_user_option.cmake`, …). Declare libraries in `<project>/CMakeLists.txt` with `kmcmake_cc_*`. Use `SHARE` on a library when you need a shared variant.
 
-## Notes
-1. After generating the configurations, adjust compilation options, dependencies, etc., in `CMakeLists.txt` according to the actual project requirements;
-2. Ensure CMake 3.15+ and the kumo ecosystem's `kmdo` tool are installed locally (required for Method 2);
-3. The generated configuration files are fully compatible with native CMake commands, and you can directly execute `cmake .. && make` to build the project.
+## Generated layout (simplified)
 
-## Copyright
+```
+myproject/
+├── CMakeLists.txt          # Entry: kmcmake_module + cmake/*
+├── CMakePresets.json       # default + ninja (kmpkg via $KMPKG_CMAKE)
+├── docs/                   # AI.md, upgrade guides
+├── kmcmake/                # Framework — replace on upgrade
+│   ├── kmcmake_module.cmake
+│   ├── kmcmake_option.cmake
+│   ├── arch/               # x86 / arm SIMD
+│   └── tools/              # cc_library, cc_test, ar_*, …
+├── cmake/                  # User config — edit freely
+│   ├── myproject_deps.cmake
+│   ├── myproject_cxx_config.cmake
+│   └── …
+├── myproject/              # Sources (+ skills.h, version.h.in)
+├── tests/
+├── examples/
+└── benchmark/
+```
 
-by default, kmcmake generate `Apache 2` LICENSE for the project, if you need to change you own,
-just replace the generate code license.
+## Upgrading an existing project
 
-**Special Statement**
-The LICENSE of this project (kmcmake) only applies to protecting the intellectual 
-property rights of the original code of the kmcmake project, and is not associated 
-with or binding on the copyright ownership and license agreement selection of the 
-code generated through the project template. The copyright of the generated code 
-shall be defined by the user, who may independently select an appropriate open 
-source/commercial license agreement.
+Do **not** overwrite `cmake/` or product sources. Generate a fresh skeleton under `/tmp`, then replace `kmcmake/` and copy `CMakePresets.json`. Full steps: [AI_UPGRADE_1_5.md](template/docs/AI_UPGRADE_1_5.md).
+
+## License
+
+This repository is under the [Apache License 2.0](LICENSE).
+
+Generated projects ship an Apache-2.0 `LICENSE` by default; you may replace it. The kmcmake project license does **not** bind the copyright or license choice of code you generate from the template — that remains yours.

@@ -156,6 +156,15 @@ To add a new architecture:
 - To override base flags: set `KMCMAKE_BASE_CXX_FLAGS` in `user_option.cmake`
 - All public CMake functions use `kmcmake_` prefix
 
+## Upgrading kmcmake
+
+| Situation | Doc |
+|-----------|-----|
+| Pre-v1 flat layout → layered `kmcmake/` + `cmake/` | `docs/AI_UPGRADE.md` |
+| Already on 1.4.x / early 1.5 → **1.5.0+** (ops for AI) | `docs/AI_UPGRADE_1_5.md` |
+
+`AI_UPGRADE_1_5.md` is step-only: generate skeleton under `/tmp/<proj>_upgrade`, replace `kmcmake/`, copy `CMakePresets.json`. Do not install the template into the real project tree.
+
 ## skills.h Convention
 
 Every kmcmake-based project includes a `skills.h` file in its main source directory.
@@ -225,9 +234,9 @@ kmcmake_cc_library(
     SHARE                                                # build + install shared lib
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include         # public includes
     PINCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/src            # private includes
-    LINKS Threads::Threads                               # public link deps
-    PLINKS myproj::util                                  # private link deps
-    WLINKS archiver                                       # whole-archive link
+    LINKS Threads::Threads                               # public link deps (also applied when compiling SOURCES)
+    PLINKS myproj::util                                  # private link deps (also applied when compiling SOURCES)
+    WLINKS archiver                                       # whole-archive link (pack/link only)
     CXXOPTS ${KMCMAKE_CXX_OPTIONS}                       # compiler flags
     DEFINES MYLIB_EXPORTS                                # compile definitions
     EXCLUDE_SYSTEM                                       # don't mark includes SYSTEM

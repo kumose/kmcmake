@@ -21,11 +21,13 @@ on:
     branches: [dev, main]
   workflow_dispatch:
 
-# Primary: x-ci bootstraps kmpkg. Optional empty toolchain is still valid —
-# see no-kmpkg jobs for that path.
+# Primary: x-ci v2 bootstraps kmpkg per platform. Optional empty toolchain is
+# still valid — see no-kmpkg jobs for that path.
+#
+# Skip policy (same as former v1): no macos-x86, no windows-arm64, no alpine-arm.
 jobs:
-  ci:
-    uses: kumose/x-ci/.github/workflows/ci-template.yml@v1
+  ubuntu:
+    uses: kumose/x-ci/.github/workflows/ubuntu.yml@v2
     with:
       config-command: |
         cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
@@ -35,14 +37,83 @@ jobs:
         cmake --build /tmp/testproj/build --parallel
       test-command: |
         ctest --test-dir /tmp/testproj/build --output-on-failure -j1
-      skip-macos-x86: true
-      skip-windows: true
-      skip-windows-arm64: true
-      skip-linux-musl-arm64: true
 
-  # MSVC + kmpkg x64-windows (shared x-ci Windows job mixes MinGW with MSVC packages).
-  windows-msvc:
-    uses: ./.github/workflows/windows.yml
+  alpine:
+    uses: kumose/x-ci/.github/workflows/alpine.yml@v2
+    with:
+      skip-arm: true
+      config-command: |
+        cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
+        cmake --install build-template --prefix /tmp/testproj
+        cmake --preset=default -S /tmp/testproj -DKMCMAKE_BUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
+      build-command: |
+        cmake --build /tmp/testproj/build --parallel
+      test-command: |
+        ctest --test-dir /tmp/testproj/build --output-on-failure -j1
+
+  centos:
+    uses: kumose/x-ci/.github/workflows/centos.yml@v2
+    with:
+      config-command: |
+        cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
+        cmake --install build-template --prefix /tmp/testproj
+        cmake --preset=default -S /tmp/testproj -DKMCMAKE_BUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
+      build-command: |
+        cmake --build /tmp/testproj/build --parallel
+      test-command: |
+        ctest --test-dir /tmp/testproj/build --output-on-failure -j1
+
+  mac:
+    uses: kumose/x-ci/.github/workflows/mac.yml@v2
+    with:
+      skip-amd: true
+      config-command: |
+        cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
+        cmake --install build-template --prefix /tmp/testproj
+        cmake --preset=default -S /tmp/testproj -DKMCMAKE_BUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
+      build-command: |
+        cmake --build /tmp/testproj/build --parallel
+      test-command: |
+        ctest --test-dir /tmp/testproj/build --output-on-failure -j1
+
+  # MSVC + Ninja (x-ci v2 windows); env sets CMAKE_MAKE_PROGRAM after bootstrap.
+  windows:
+    uses: kumose/x-ci/.github/workflows/windows.yml@v2
+    with:
+      skip-arm: true
+      config-command: |
+        cmake -S template -B build-template -DCHANGEME=testproj -DCMAKE_BUILD_TYPE=Release
+        cmake --install build-template --prefix "$env:RUNNER_TEMP/testproj"
+        Set-Location "$env:RUNNER_TEMP/testproj"
+        if (-not (Get-Command cl -ErrorAction SilentlyContinue)) {
+          throw "cl.exe not on PATH after msvc-dev-cmd"
+        }
+        $ninja = $env:CMAKE_MAKE_PROGRAM
+        if (-not $ninja) {
+          $ninja = (Get-Command ninja -ErrorAction Stop).Source
+        }
+        if (-not (Test-Path $ninja)) {
+          throw "ninja not found at $ninja"
+        }
+        & $ninja --version | Out-Host
+        if (-not $env:KMPKG_CMAKE) {
+          throw "KMPKG_CMAKE is not set"
+        }
+        cmake --preset=ninja `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_C_COMPILER=cl `
+          -DCMAKE_CXX_COMPILER=cl `
+          -DCMAKE_MAKE_PROGRAM="$ninja" `
+          -DKMCMAKE_BUILD_TEST=ON
+      build-command: |
+        Set-Location "$env:RUNNER_TEMP/testproj"
+        if (-not (Get-Command nproc -ErrorAction SilentlyContinue)) {
+          function global:nproc { [Environment]::ProcessorCount }
+        }
+        cmake --build build-ninja --parallel
+      test-command: |
+        Set-Location "$env:RUNNER_TEMP/testproj"
+        ctest --test-dir build-ninja --output-on-failure -j1
 
   # Standalone: no kmpkg bootstrap — empty $KMPKG_CMAKE / toolchain.
   no-kmpkg:

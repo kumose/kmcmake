@@ -21,6 +21,9 @@
 #   4. export props → kmcmake_export_product_properties
 #   5. PUBLIC → kmcmake_install_library_target
 #
+# LINKS / PLINKS are forwarded to the INTERNAL object (compile usage) and to
+# ar_static / ar_shared (link). WLINKS are pack-only.
+#
 # Public API unchanged:
 #   - <namespace>::<name>_static
 #   - <namespace>::<name>  (shared alias, only if SHARE)
@@ -133,6 +136,13 @@ function(kmcmake_cc_library)
         endif ()
         if (KMCMAKE_CC_LIB_DEPS)
             list(APPEND _obj_call DEPS ${KMCMAKE_CC_LIB_DEPS})
+        endif ()
+        # Usage requirements needed while compiling SOURCES (includes/defines).
+        if (KMCMAKE_CC_LIB_LINKS)
+            list(APPEND _obj_call LINKS ${KMCMAKE_CC_LIB_LINKS})
+        endif ()
+        if (KMCMAKE_CC_LIB_PLINKS)
+            list(APPEND _obj_call PLINKS ${KMCMAKE_CC_LIB_PLINKS})
         endif ()
         kmcmake_cc_object(${_obj_call})
 

@@ -1,128 +1,116 @@
 # kmcmake
 
-
 [English](README.md)
 
 [![CI](https://github.com/kumose/kmcmake/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/kumose/kmcmake/actions/workflows/ci.yml)
 
+[网站 / 文档](https://pub.kumose.cc/kmcmake/) · [更新日志](CHANGELOG_CN.md)
 
-[more docs](https://pub.kumose.cc/kmcmake/)
+**当前模板版本：1.5.0**
 
-一款面向 kumo 生态的标准化 C/C++ 构建系统，基于 CMake 打造，提供开箱即用的构建模板与工具链集成能力，统一 kumo 体系内各项目的构建流程。
+## 项目是什么？
 
-## 核心能力
-- 标准化 C/C++ 编译配置（支持多编译器、多系统）
-- 一键生成专属项目的 CMake 配置模板
-- 集成 kumo 生态的 `kmdo` 工具链，简化项目初始化流程
+**kmcmake** 是面向 [kumo](https://github.com/kumose) 生态的 C/C++ **项目模板 + 轻量构建框架**。
+
+从 `template/` 生成一次工程后，仓库分成两层：
+
+| 层级 | 路径 | 谁维护 |
+|------|------|--------|
+| 框架 | `kmcmake/` | 升级时整树替换 — 不要手改 |
+| 用户配置 | `cmake/` | 依赖、选项、编译选项聚合 |
+| 业务代码 | `<project>/`、`tests/` … | 你的源码 |
+
+日常用 `kmcmake_cc_library`、`kmcmake_cc_binary`、`kmcmake_cc_test` 等声明目标；可选通过 `CMakePresets.json`（`KMPKG_CMAKE`）接入 [kmpkg](https://github.com/kumose/kmpkgcore)。kmpkg 非必须：工具链为空时仍可用系统包构建。
+
+## 能力概览
+
+- 分层模板：可升级的 `kmcmake/` vs 可改的 `cmake/`
+- 目标宏：库（静态 + 可选 `SHARE`）、OBJECT、INTERFACE、可执行文件、测试、benchmark、protobuf
+- Preset：`default`（Unix Makefiles → `build/`）、`ninja`（→ `build-ninja/`），含 Windows MSVC + Ninja
+- 分架构 SIMD 探测（x86 / ARM）→ `KMCMAKE_CXX_OPTIONS` 与生成的 `version.h` 宏
+- 打包钩子（CPack / deb / rpm）及可选 Python 打包脚本
+- CI 使用 [x-ci](https://github.com/kumose/x-ci) `@v2`（Linux glibc/musl/CentOS、macOS、Windows MSVC）
+- `template/docs/` 提供面向 AI 的约束、API 与升级步骤
+
+## 模板文档（`template/docs/`）
+
+| 文档 | 用途 |
+|------|------|
+| [AI.md](template/docs/AI.md) | AI 上下文：约束、目录、API、约定 |
+| [AI_UPGRADE.md](template/docs/AI_UPGRADE.md) | 旧结构 → 分层 `kmcmake/` + `cmake/` 迁移 |
+| [AI_UPGRADE_1_5.md](template/docs/AI_UPGRADE_1_5.md) | 1.4.x / 早期 1.5 → **1.5.0+** 升级（面向 AI 的操作步骤） |
+
+### 给 AI Agent
+
+**改本仓库或升级下游工程前，请自行阅读上表文档**（不要凭记忆猜测）：
+
+1. 一律先读 [`template/docs/AI.md`](template/docs/AI.md)。
+2. 升级已有 1.4 分层工程 → 按 [`template/docs/AI_UPGRADE_1_5.md`](template/docs/AI_UPGRADE_1_5.md)（在 `/tmp` 生成骨架、替换 `kmcmake/`、拷贝 `CMakePresets.json`）。
+3. 仍是 pre-v1 扁平结构 → 先走 [`template/docs/AI_UPGRADE.md`](template/docs/AI_UPGRADE.md)。
+
+从 `template/` 执行 `cmake --install` 时，这些文件会安装到生成项目的 `docs/` 目录。
+
+## 环境要求
+
+- **生成**本仓库模板：CMake **≥ 3.31**
+- **生成后的工程**：CMake **≥ 3.20**，C++17+（GCC / Clang / AppleClang / MSVC）
+- 可选：[kmpkg](https://github.com/kumose/kmpkgcore)、[kmdo](https://github.com/kumose/kmdo)、Ninja
 
 ## 快速开始
-### 方式一：通过 CMake 模板手动创建项目
+
+### 从模板生成工程
+
 ```bash
-# 1. 基于模板生成配置文件（将 myproject 替换为你的项目名称）
-cmake -S ./template -B build -DCHANGEME=myproject
-# 2. 将生成的配置文件安装到目标项目目录（将 your/path 替换为实际项目路径）
-cmake --install build --prefix your/path
+cmake -S ./template -B build-template -DCHANGEME=myproject
+cmake --install build-template --prefix /path/to/myproject
 ```
 
-### 方式二：通过 kmdo 一键生成（推荐）
-在项目根目录执行以下命令，自动生成适配项目名称的 CMake 配置：
+### 或使用 kmdo（若已安装）
+
 ```bash
-# 将参数替换为你的项目名称和目标路径
-kmdo kmpkg gencmake -n your-project-name -o your-path
+kmdo kmpkg gencmake -n myproject -o /path/to/myproject
 ```
 
-## 目录结构（模板核心）
-```
-tree myy/
-myy/
-├── benchmark
-│   ├── CMakeLists.txt
-│   └── config.h.in
-├── build-pypi-linux.sh
-├── cmake
-│   ├── deb
-│   │   ├── postinst.in
-│   │   ├── postrm
-│   │   ├── preinst
-│   │   └── prerm
-│   ├── myproject_config.cmake.in
-│   ├── myproject_cpack_config.cmake
-│   ├── myproject_cxx_config.cmake
-│   ├── myproject_deps.cmake
-│   ├── myproject_test.cmake
-│   └── rpm
-│       ├── postinst.in
-│       ├── postrm
-│       ├── preinst
-│       └── prerm
-├── CMakeLists.txt
-├── CMakePresets.json
-├── examples
-│   ├── CMakeLists.txt
-│   └── foo_ex.cc
-├── kmcmake
-│   ├── copts
-│   │   ├── copts.py
-│   │   └── generate_copts.py
-│   ├── kmcmake_module.cmake
-│   ├── kmcmake_option.cmake
-│   ├── package
-│   │   ├── CPack.STGZ_Header.sh.in
-│   │   ├── pkg_dump_template.pc.in
-│   │   └── README.md
-│   ├── README.md
-│   └── tools
-│       ├── default_setting.cmake
-│       ├── git_commit.cmake
-│       ├── kmcmake_cc_benchmark.cmake
-│       ├── kmcmake_cc_binary.cmake
-│       ├── kmcmake_cc_interface.cmake
-│       ├── kmcmake_cc_library.cmake
-│       ├── kmcmake_cc_object.cmake
-│       ├── kmcmake_cc_proto.cmake
-│       ├── kmcmake_cc_test.cmake
-│       └── simd_detect.cmake
-├── LICENSE
-├── myproject
-│   ├── api.h
-│   ├── CMakeLists.txt
-│   ├── foo.cc
-│   ├── foo.h
-│   ├── main.cc
-│   └── version.h.in
-├── pyproject.toml
-├── README_CN.md
-├── README.md
-├── release-pypi-linux.sh
-├── requirements.txt
-├── setup.py
-└── tests
-    ├── args_test.cc
-    ├── CMakeLists.txt
-    ├── config.h.in
-    ├── foo_doctest.cc
-    ├── foo_test.cc
-    ├── pass_test.cc
-    └── raw_test.cc
+### 构建生成后的工程
+
+```bash
+cd /path/to/myproject
+# 可选：kmpkg bootstrap 后设置 KMPKG_HOME / KMPKG_CMAKE
+cmake --preset=default -DKMCMAKE_BUILD_TEST=ON    # 或 --preset=ninja
+cmake --build build --parallel                    # 或 build-ninja
+ctest --test-dir build --output-on-failure
 ```
 
+用户配置改 `cmake/`（`*_deps.cmake`、`*_user_option.cmake` 等）。在 `<project>/CMakeLists.txt` 用 `kmcmake_cc_*` 声明目标；需要动态库时在对应库上加 `SHARE`。
 
-## 关键参数说明
-| 参数       | 说明                                  | 示例值        |
-|------------|---------------------------------------|---------------|
-| CHANGEME   | 模板中的占位符，需替换为实际项目名称  | myproject     |
-| --prefix   | 配置文件的安装路径                    | ./my-project  |
+## 生成后的目录（简图）
 
-## 注意事项
-1. 生成配置文件后，需根据项目实际需求调整 `CMakeLists.txt` 中的编译选项、依赖项等内容；
-2. 确保本地已安装 CMake 3.15 及以上版本，且已部署 kumo 生态的 `kmdo` 工具（方式二依赖此工具）；
-3. 生成的配置文件完全兼容原生 CMake 命令，可直接执行 `cmake .. && make` 完成项目构建。
+```
+myproject/
+├── CMakeLists.txt          # 入口：kmcmake_module + cmake/*
+├── CMakePresets.json       # default + ninja（经 $KMPKG_CMAKE 接 kmpkg）
+├── docs/                   # AI.md、升级指南
+├── kmcmake/                # 框架 — 升级时整树替换
+│   ├── kmcmake_module.cmake
+│   ├── kmcmake_option.cmake
+│   ├── arch/               # x86 / arm SIMD
+│   └── tools/              # cc_library、cc_test、ar_* …
+├── cmake/                  # 用户配置 — 可自由修改
+│   ├── myproject_deps.cmake
+│   ├── myproject_cxx_config.cmake
+│   └── …
+├── myproject/              # 源码（含 skills.h、version.h.in）
+├── tests/
+├── examples/
+└── benchmark/
+```
 
-## 版权声明
-默认情况下，kmcmake 会为项目生成基于 `Apache 2` 协议的开源许可证。若需自定义许可证，直接替换生成代码中对应的许可证文件/声明即可。
+## 升级已有工程
 
-**特别声明**
-本项目（kmcmake）自身的 LICENSE 仅适用于保护 kmcmake 项目原始代码的知识产权，
-不关联、不约束通过本项目模板生成的代码的版权归属及许可协议选择。生成代码的版权由使用者自行界定，
-并可自主选择适配的开源 / 商业许可协议。
+不要覆盖 `cmake/` 或业务源码。在 `/tmp` 生成新骨架，再替换 `kmcmake/` 并拷贝 `CMakePresets.json`。完整步骤见 [AI_UPGRADE_1_5.md](template/docs/AI_UPGRADE_1_5.md)。
 
+## 许可证
+
+本仓库采用 [Apache License 2.0](LICENSE)。
+
+生成工程默认带 Apache-2.0 的 `LICENSE`，可自行替换。kmcmake 项目许可证**不约束**你从模板生成代码的版权与许可证选择——由你自行决定。
